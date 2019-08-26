@@ -1,0 +1,36 @@
+img.ball {
+  position: absolute;
+  height: 25px;
+  width: 25px;
+  visibility: hidden;
+}
+
+html, body, .container, .row {
+	height: 100%;
+}
+
+#juggle_container {
+	border: 1px solid #000;
+	height: 100%;
+	max-width: calc(50vh)
+}
+
+#van-multi-toggle {
+  margin-left: auto;
+  margin-right: auto;
+}
+.slider-horizontal{
+   margin-left: 15px;
+}
+svg {
+	border: solid 1px #eeeeee;
+	width: 100%;
+	min-height: 350px;
+	height: 100%;
+	bottom: 0;
+}
+
+#error {
+  display: none; 
+}
+
