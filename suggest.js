@@ -420,7 +420,9 @@ function maxLengthToCheck(s) {
   }
   // this max is to handle an issue I don't fully understand when the prefix is
   // something like "0" or "(0"
-  return Math.max(max - s.siteswap.length + 1, 2);
+  // the +2 used to be a +1 but that made it check too little for the prefix
+  // "32"
+  return Math.max(max - s.siteswap.length + 2, 2);
 }
 
 // Returns the length of the shortest suffix.
