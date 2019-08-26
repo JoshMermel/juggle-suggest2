@@ -686,6 +686,14 @@ function syncBuildFuns() {
 // Builds a suffix using the state transition graph.
 function buildAsyncSuffix(s, suffix_map, build_funs) {
   var suffix = "";
+  // Hacky prework to deal with cases like 745[25 where the next toss is at
+  // index 4 but thinks it should append to the square brace because the state
+  // is A_BRACE.
+  if (suffix_map[s.siteswap.length - 1] === undefined &&
+    s.parse_state === AsyncStateEnum.A_BRACE) {
+    suffix += "]";
+    s.parse_state = AsyncStateEnum.A_NORMAL;
+  }
   for (var i = 0; i < suffix_map.length; i++) {
     if (suffix_map[i] !== undefined) {
       suffix += build_funs[s.parse_state](s, suffix_map[i], i);
