@@ -502,14 +502,14 @@ function syncVanillaSuffixLength(s) {
   return -1;
 }
 
-function asyncSuffixLength(allow_multiplex) {
+function asyncSuffixLength(prefix, allow_multiplex) {
   if (allow_multiplex) {
     return asyncMultiplexSuffixLength(prefix);
   }
   return asyncVanillaSuffixLength(prefix);
 }
 
-function syncSuffixLength(allow_multiplex) {
+function syncSuffixLength(prefix, allow_multiplex) {
   if (allow_multiplex) {
     return syncMultiplexSuffixLength(prefix);
   }
@@ -746,7 +746,7 @@ function asyncSuggest(input, allow_multiplex) {
   }
 
   // Find suffix length
-  var suffix_length = asyncSuffixLength(allow_multiplex);
+  var suffix_length = asyncSuffixLength(prefix, allow_multiplex);
   if (suffix_length === -1) {
     return {error: "No valid suffixes exist for " + input};
   }
@@ -774,7 +774,7 @@ function syncSuggest(input, allow_multiplex) {
   }
 
   // Find suffix length
-  var suffix_length = syncSuffixLength(allow_multiplex);
+  var suffix_length = syncSuffixLength(prefix, allow_multiplex);
   if (suffix_length === -1) {
     return {error: "No valid suffixes exist for " + input};
   }
