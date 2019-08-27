@@ -109,7 +109,6 @@ var SyncStateEnum = {
   S_PAREN : 15,
 };
 
-
 function parseANormal(s, next_char) {
   if (next_char === "[") {
     s.parse_state = AsyncStateEnum.A_EMPTY_BRACE;
@@ -423,7 +422,7 @@ function maxLengthToCheck(s) {
 }
 
 // Returns the length of the shortest suffix.
-function asyncSuffixLength(s) {
+function asyncMultiplexSuffixLength(s) {
   var ups = getUps(s);
   var max_length_to_check = maxLengthToCheck(s);
   var downs;
@@ -436,7 +435,7 @@ function asyncSuffixLength(s) {
   return -1;
 }
 
-function syncSuffixLength(s) {
+function syncMultiplexSuffixLength(s) {
   var first_suffix_len = s.siteswap.length % 2;
   // HACK, fixes (0,0)( -> ) and ( -> )
   if (s.parse_state === SyncStateEnum.S_FIRST) {
@@ -501,6 +500,20 @@ function syncVanillaSuffixLength(s) {
     }
   }
   return -1;
+}
+
+function asyncSuffixLength(allow_multiplex) {
+  if (allow_multiplex) {
+    return asyncMultiplexSuffixLength(prefix);
+  }
+  return asyncVanillaSuffixLength(prefix);
+}
+
+function syncSuffixLength(allow_multiplex) {
+  if (allow_multiplex) {
+    return syncMultiplexSuffixLength(prefix);
+  }
+  return syncVanillaSuffixLength(prefix);
 }
 
 function goalCounts(ups, downs, suffix_length, parse_state) {
@@ -724,7 +737,7 @@ function buildSyncSuffix(s, suffix_map, build_funs) {
 }
 
 // Inputs is a string prefix of a siteswap
-// prints a suffix or that there is none.
+// Returns a suffix or that there is none.
 function asyncSuggest(input, allow_multiplex) {
   // Parse
   var prefix = parseSiteswap(input, AsyncStateEnum.A_NORMAL, asyncParseFuns());
@@ -733,16 +746,10 @@ function asyncSuggest(input, allow_multiplex) {
   }
 
   // Find suffix length
-  var suffix_length;
-  if (allow_multiplex) {
-    suffix_length = asyncSuffixLength(prefix);
-  } else {
-    suffix_length = asyncVanillaSuffixLength(prefix);
-  }
+  var suffix_length = asyncSuffixLength(allow_multiplex);
   if (suffix_length === -1) {
     return {error: "No valid suffixes exist for " + input};
   }
-
   
   // Figure out what you have and need
   var ups = getUps(prefix);
@@ -767,12 +774,7 @@ function syncSuggest(input, allow_multiplex) {
   }
 
   // Find suffix length
-  var suffix_length;
-  if (allow_multiplex) {
-    suffix_length = syncSuffixLength(prefix);
-  } else {
-    suffix_length = syncVanillaSuffixLength(prefix);
-  }
+  var suffix_length = syncSuffixLength(allow_multiplex);
   if (suffix_length === -1) {
     return {error: "No valid suffixes exist for " + input};
   }
