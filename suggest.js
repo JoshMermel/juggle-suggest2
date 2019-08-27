@@ -488,6 +488,9 @@ function syncVanillaSuffixLength(s) {
   var ups = getUps(s);
   // Since lengths must be even, this +1 makes sure we actually check the max
   // length we intend to check.
+  // For some reason I hit a bug in development that made me change this to +3
+  // but I forgot what the input was. At least checking a little longer should
+  // never hurt.
   var max_length_to_check = maxLengthToCheck(s) + 3;
   var downs;
   for (var i = first_suffix_len; i < max_length_to_check; i+=2) {
@@ -558,14 +561,14 @@ function suffixMap(have, need, goal_length) {
   return suffix_map;
 }
 
-function getAsyncPunctuation(parse_state) {
+function asyncPunctuation(parse_state) {
   if (isOpenMultiplexState(parse_state)) {
     return "]";
   }
   return "";
 }
 
-function getSyncPunctuation(parse_state) {
+function syncPunctuation(parse_state) {
   var ret = "";
   if (isOpenMultiplexState(parse_state)) {
     ret += "]";
@@ -703,10 +706,10 @@ function buildAsyncSuffix(s, suffix_map, build_funs) {
   var suffix = asyncPreSuffix(s, suffix_map);
   for (var i = 0; i < suffix_map.length; i++) {
     if (suffix_map[i] !== undefined) {
-      suffix += build_funs[s.parse_state](s, suffix_map[i], i);
+      suffix += build_funs[s.parse_state](s, suffix_map[i]);
     }
   }
-  return suffix + getAsyncPunctuation(s.parse_state);
+  return suffix + asyncPunctuation(s.parse_state);
 }
 
 // Builds a suffix using the state transition graph.
@@ -717,7 +720,7 @@ function buildSyncSuffix(s, suffix_map, build_funs) {
       suffix += build_funs[s.parse_state](s, suffix_map[i]);
     }
   }
-  return suffix + getSyncPunctuation(s.parse_state);
+  return suffix + syncPunctuation(s.parse_state);
 }
 
 // Inputs is a string prefix of a siteswap
@@ -798,20 +801,20 @@ function updateSuggestion(prefix) {
     suffix = "531";
   } else if (prefix[0] === "(") {
     if (document.getElementById("vanilla").checked) {
-      var suffix = syncSuggest(prefix, false);
+      suffix = syncSuggest(prefix, false);
     } else {
-      var suffix = syncSuggest(prefix, true);
+      suffix = syncSuggest(prefix, true);
     }
   } else {
     if (document.getElementById("vanilla").checked) {
-      var suffix = asyncSuggest(prefix, false);
+      suffix = asyncSuggest(prefix, false);
     } else {
-      var suffix = asyncSuggest(prefix, true);
+      suffix = asyncSuggest(prefix, true);
     }
   }
 
   if (suffix.error != undefined) {
-    suggestbox.options = []
+    suggestbox.options = [];
     $('#error span').text(suffix.error);
     $('#error').slideDown();
     return;
