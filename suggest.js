@@ -50,12 +50,9 @@ function asyncToToss(i) {
 // returns a string representing a throw of that height.
 // if the throw is odd, it need to be made even and given an "x". Parity is used
 // to tell whether it should be incremented to decremented.
-function syncToToss(i, parity) {
-  if (parity % 2 === 0 && i % 2 === 1) {
-    return syncToToss(i-1, parity+1) + "x";
-  }
-  if (parity % 2 === 1 && i % 2 === 1) {
-    return syncToToss(i+1, parity+1) + "x";
+function syncToToss(i, odd_modifier) {
+  if (i % 2 === 1) {
+    return syncToToss(i + odd_modifier) + "x";
   }
 
   if (i >= 0 && i <= 9) {
@@ -73,8 +70,8 @@ function syncToToss(i, parity) {
 function toAsyncMultiToss(tosses) {
   return tosses.map(x => asyncToToss(x)).join("");
 }
-function toSyncMultiToss(tosses, parity) {
-  return tosses.map(x => syncToToss(x, parity)).join("");
+function toSyncMultiToss(tosses, odd_modifier) {
+  return tosses.map(x => syncToToss(x, odd_modifier)).join("");
 }
 
 function appendX(s) {
@@ -600,17 +597,16 @@ function asyncBuildFuns() {
   return build_funs;
 }
 
-function buildSuffixSNormal (s, toss, index) {
-  return "(" + buildSuffixSFirst(s, toss, index);
+function buildSuffixSNormal (s, toss) {
+  return "(" + buildSuffixSFirst(s, toss);
 }
 
-function buildSuffixSFirst(s, toss, index) {
+function buildSuffixSFirst(s, toss) {
   if (toss.length > 1) {
-    return "[" + buildSuffixSFirstEmptyBrace(s, toss, index);
+    return "[" + buildSuffixSFirstBrace(s, toss);
   } else {
     s.parse_state = SyncStateEnum.S_SECOND;
-    // TODO index is always 0 here.
-    return syncToToss(toss[0], index) + ",";
+    return syncToToss(toss[0], -1) + ",";
   }
 }
 
@@ -619,50 +615,31 @@ function buildSuffixSFirstX(s, index , toss) {
   return "," + buildSuffixSSecond(s, index , toss);
 }
 
-function buildSuffixSFirstEmptyBrace(s, toss, index) {
+// Also handle S_FIRST_EMPTY_BRACE and S_FIRST_X_OR_BRACE
+function buildSuffixSFirstBrace(s, toss) {
   s.parse_state = SyncStateEnum.S_SECOND;
-  // TODO index is always 0 here.
-  return toSyncMultiToss(toss, index) + "],";
+  return toSyncMultiToss(toss, -1) + "],";
 }
 
 // also handles S_FIRST_X_OR_BRACE
-function buildSuffixSFirstBrace(s, toss, index) {
-  if (index % 2 === 0) {
-    return buildSuffixSFirstEmptyBrace(s, toss, index);
-  } else {
-    return "]," + buildSuffixSSecond(s, toss, index);
-  }
-}
-
-function buildSuffixSSecond(s, toss, index) {
+function buildSuffixSSecond(s, toss) {
   if (toss.length > 1) {
-    s.parse_state = SyncStateEnum.S_SECOND_EMPTY_BRACE;
-    return "[" + buildSuffixSSecondEmptyBrace(s, toss, index);
+    return "[" + buildSuffixSSecondBrace(s, toss);
   } else {
     s.parse_state = SyncStateEnum.S_NORMAL;
-    // TODO index is always 1 here.
-    return syncToToss(toss[0], index) + ")";
+    return syncToToss(toss[0], 1) + ")";
   }
 }
 
 // Also handles S_PAREN
-function buildSuffixSSecondX(s, toss, index) {
-  return ")(" + buildSuffixSFirst(s, toss, index);
+function buildSuffixSSecondX(s, toss) {
+  return ")(" + buildSuffixSFirst(s, toss);
 }
 
-function buildSuffixSSecondEmptyBrace(s, toss, index) {
+// Also handle S_SECOND_EMPTY_BRACE and S_SECOND_X_OR_BRACE
+function buildSuffixSSecondBrace(s, toss) {
   s.parse_state = SyncStateEnum.S_NORMAL;
-  // TODO index is always 1 here.
-  return toSyncMultiToss(toss, index) + "])";
-}
-
-// Also handles S_SECOND_X_OR_BRACE
-function buildSuffixSSecondBrace(s, toss, index) {
-  if (index % 2 === 0) {
-    return "])(" + buildSuffixSFirst(s, toss, index);
-  } else {
-    return buildSuffixSSecondEmptyBrace(s, toss, index);
-  }
+  return toSyncMultiToss(toss, 1) + "])";
 }
 
 function syncBuildFuns() {
@@ -671,29 +648,59 @@ function syncBuildFuns() {
   build_funs[SyncStateEnum.S_FIRST] = buildSuffixSFirst;
   build_funs[SyncStateEnum.S_FIRST_X] = buildSuffixSFirstX;
   build_funs[SyncStateEnum.S_COMMA] = buildSuffixSFirstX;
-  build_funs[SyncStateEnum.S_FIRST_EMPTY_BRACE] = buildSuffixSFirstEmptyBrace;
+  build_funs[SyncStateEnum.S_FIRST_EMPTY_BRACE] = buildSuffixSFirstBrace;
   build_funs[SyncStateEnum.S_FIRST_BRACE] = buildSuffixSFirstBrace;
   build_funs[SyncStateEnum.S_FIRST_X_OR_BRACE] = buildSuffixSFirstBrace;
   build_funs[SyncStateEnum.S_SECOND] = buildSuffixSSecond;
   build_funs[SyncStateEnum.S_SECOND_X] = buildSuffixSSecondX;
   build_funs[SyncStateEnum.S_PAREN] = buildSuffixSSecondX;
-  build_funs[SyncStateEnum.S_SECOND_EMPTY_BRACE] = buildSuffixSSecondEmptyBrace;
+  build_funs[SyncStateEnum.S_SECOND_EMPTY_BRACE] = buildSuffixSSecondBrace;
   build_funs[SyncStateEnum.S_SECOND_BRACE] = buildSuffixSSecondBrace;
   build_funs[SyncStateEnum.S_SECOND_X_OR_BRACE] = buildSuffixSSecondBrace;
   return build_funs;
 }
 
-// Builds a suffix using the state transition graph.
-function buildAsyncSuffix(s, suffix_map, build_funs) {
+// Handles cases where the state of the user's input is an open multiplex that
+// we don't want to add to. By doing this as prework, the suffix builder can be
+// simplifed. For example:
+// 745[25 -> ]5[56]5[57]
+function asyncPreSuffix(s, suffix_map) {
   var suffix = "";
-  // Hacky prework to deal with cases like 745[25 where the next toss is at
-  // index 4 but thinks it should append to the square brace because the state
-  // is A_BRACE.
   if (suffix_map[s.siteswap.length - 1] === undefined &&
     s.parse_state === AsyncStateEnum.A_BRACE) {
     suffix += "]";
     s.parse_state = AsyncStateEnum.A_NORMAL;
   }
+  return suffix;
+}
+
+// Handles cases where the state of the user's input is an open multiplex that
+// we don't want to add to. By doing this as prework, the suffix builder can be
+// simplifed. For example:
+// (4,4)([44          -> ],4)
+// (4,4)([4x4x        -> ], [2x2x])
+// ([6x2x],4)(4,[2x8x -> ])([24],4)
+// ([64],2x)(2x,[44   -> ])(4,2x)(4x,[44])
+function syncPreSuffix(s, suffix_map) {
+  var suffix = "";
+  if (suffix_map[s.siteswap.length - 1] === undefined &&
+    (s.parse_state === SyncStateEnum.S_FIRST_BRACE ||
+    s.parse_state === SyncStateEnum.S_FIRST_X_OR_BRACE)) {
+    suffix += "],";
+    s.parse_state = SyncStateEnum.S_SECOND;
+  }
+  if (suffix_map[s.siteswap.length - 1] === undefined &&
+    (s.parse_state === SyncStateEnum.S_SECOND_BRACE ||
+    s.parse_state === SyncStateEnum.S_SECOND_X_OR_BRACE)) {
+    suffix += "])(";
+    s.parse_state = SyncStateEnum.S_FIRST;
+  }
+  return suffix;
+}
+
+// Builds a suffix using the state transition graph.
+function buildAsyncSuffix(s, suffix_map, build_funs) {
+  var suffix = asyncPreSuffix(s, suffix_map);
   for (var i = 0; i < suffix_map.length; i++) {
     if (suffix_map[i] !== undefined) {
       suffix += build_funs[s.parse_state](s, suffix_map[i], i);
@@ -704,10 +711,10 @@ function buildAsyncSuffix(s, suffix_map, build_funs) {
 
 // Builds a suffix using the state transition graph.
 function buildSyncSuffix(s, suffix_map, build_funs) {
-  var suffix = "";
+  var suffix = syncPreSuffix(s, suffix_map);
   for (var i = 0; i < suffix_map.length; i++) {
     if (suffix_map[i] !== undefined) {
-      suffix += build_funs[s.parse_state](s, suffix_map[i], i);
+      suffix += build_funs[s.parse_state](s, suffix_map[i]);
     }
   }
   return suffix + getSyncPunctuation(s.parse_state);
