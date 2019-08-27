@@ -1,5 +1,4 @@
 // Before launch:
-//   merge some methods that are the same except a tiny thing if possible
 //   review and update comments.
 //
 // Eventually
@@ -127,7 +126,6 @@ function parseAEmptyBrace(s, next_char) {
     s.error = "Unexpected character " + next_char;
   }
 }
-// Also handles A_EMPTY_BRACE
 function parseABrace(s, next_char) {
   if (isValidAsyncToss(next_char)) {
     s.siteswap[s.siteswap.length-1].push(toInt(next_char));
@@ -330,6 +328,14 @@ function syncParseFuns() {
   return parse_funs;
 }
 
+// TODO: we could just have map for sync and async I guess.
+function parseFuns(is_sync) {
+  if (is_sync) {
+    return syncParseFuns();
+  }
+  return asyncParseFuns();
+}
+
 // Takes a string representation of a siteswap
 // Parses it into a list list int and a parse state.
 function parseSiteswap(str, initial_state, parse_funs) {
@@ -516,6 +522,15 @@ function syncSuffixLength(prefix, allow_multiplex) {
   return syncVanillaSuffixLength(prefix);
 }
 
+// TODO(maybe have this just handle all 4 cases instead of delegating to trivial
+// functions?
+function suffixLength(prefix, allow_multiplex, is_sync) {
+  if (is_sync) {
+    return syncSuffixLength(prefix, allow_multiplex);
+  }
+  return asyncSuffixLength(prefix, allow_multiplex);
+}
+
 function goalCounts(ups, downs, suffix_length, parse_state) {
   var goal_counts = [];
   for (var i = 0; i < suffix_length + ups.length; i++) {
@@ -529,7 +544,7 @@ function goalCounts(ups, downs, suffix_length, parse_state) {
       goal_counts[i] = Math.max(ups[i], downs[i]);
     }
   }
-  // Controversial choice, honor user square braces even in input mode.
+  // Opinionated choice, honor user square braces even in vanilla input mode.
   if (isOpenMultiplexState(parse_state)) {
     var open_index = ups.length - 1;
     goal_counts[open_index] = Math.max(2, goal_counts[open_index]);
@@ -537,7 +552,7 @@ function goalCounts(ups, downs, suffix_length, parse_state) {
   return goal_counts;
 }
 
-// Returns a list indices in lst that would need to be incremented to get
+// Returns a list of indices in lst that would need to be incremented to get
 // goal_counts. If an index would need to be incremented n times, then that
 // index will appear n times in the output.
 function listDiff(lst, goal_counts) {
@@ -590,6 +605,14 @@ function syncPunctuation(parse_state) {
     ret += ")";
   }
   return ret;
+}
+
+// TODO: could infer sync from state?
+function punctuation(parse_state, is_sync) {
+  if (is_sync) {
+    return syncPunctuation(parse_state);
+  }
+  return asyncPunctuation(parse_state);
 }
 
 function buildSuffixANormal(s, toss) {
@@ -676,6 +699,14 @@ function syncBuildFuns() {
   return build_funs;
 }
 
+// TODO: could merge maps
+function buildFuns(is_sync) {
+  if (is_sync) {
+    return syncBuildFuns();
+  }
+  return asyncBuildFuns();
+}
+
 // Handles cases where the state of the user's input is an open multiplex that
 // we don't want to add to. By doing this as prework, the suffix builder can be
 // simplifed. For example:
@@ -714,39 +745,42 @@ function syncPreSuffix(s, suffix_map) {
   return suffix;
 }
 
-// Builds a suffix using the state transition graph.
-function buildAsyncSuffix(s, suffix_map, build_funs) {
-  var suffix = asyncPreSuffix(s, suffix_map);
-  for (var i = 0; i < suffix_map.length; i++) {
-    if (suffix_map[i] !== undefined) {
-      suffix += build_funs[s.parse_state](s, suffix_map[i]);
-    }
+function preSuffix(s, suffix_map, is_sync) {
+  if (is_sync) {
+    return syncPreSuffix(s, suffix_map);
   }
-  return suffix + asyncPunctuation(s.parse_state);
+  return asyncPreSuffix(s, suffix_map);
 }
 
 // Builds a suffix using the state transition graph.
-function buildSyncSuffix(s, suffix_map, build_funs) {
-  var suffix = syncPreSuffix(s, suffix_map);
+function buildSuffix(s, suffix_map, build_funs, is_sync) {
+  var suffix = preSuffix(s, suffix_map, is_sync);
   for (var i = 0; i < suffix_map.length; i++) {
     if (suffix_map[i] !== undefined) {
       suffix += build_funs[s.parse_state](s, suffix_map[i]);
     }
   }
-  return suffix + syncPunctuation(s.parse_state);
+  return suffix + punctuation(s.parse_state, is_sync);
+}
+
+function initialState(is_sync) {
+  if (is_sync) {
+    return SyncStateEnum.S_NORMAL;
+  }
+  return AsyncStateEnum.A_NORMAL;
 }
 
 // Inputs is a string prefix of a siteswap
 // Returns a suffix or that there is none.
-function asyncSuggest(input, allow_multiplex) {
+function suggest(input, allow_multiplex, is_sync) {
   // Parse
-  var prefix = parseSiteswap(input, AsyncStateEnum.A_NORMAL, asyncParseFuns());
+  var prefix = parseSiteswap(input, initialState(is_sync), parseFuns(is_sync));
   if (prefix.error != undefined) {
     return prefix;
   }
 
   // Find suffix length
-  var suffix_length = asyncSuffixLength(prefix, allow_multiplex);
+  var suffix_length = suffixLength(prefix, allow_multiplex, is_sync);
   if (suffix_length === -1) {
     return {error: "No valid suffixes exist for " + input};
   }
@@ -762,35 +796,7 @@ function asyncSuggest(input, allow_multiplex) {
   var suffix_map = suffixMap(have, need, goal_counts.length);
 
   // Print the suffix in a way that matches the parse state
-  var suffix = buildAsyncSuffix(prefix, suffix_map, asyncBuildFuns());
-  return suffix;
-}
-
-function syncSuggest(input, allow_multiplex) {
-  // Parse
-  var prefix = parseSiteswap(input, SyncStateEnum.S_NORMAL, syncParseFuns());
-  if (prefix.error != undefined) {
-    return prefix;
-  }
-
-  // Find suffix length
-  var suffix_length = syncSuffixLength(prefix, allow_multiplex);
-  if (suffix_length === -1) {
-    return {error: "No valid suffixes exist for " + input};
-  }
-
-  // Figure out what you have and need
-  var ups = getUps(prefix);
-  var downs = getDowns(prefix, suffix_length);
-  var goal_counts = goalCounts(ups, downs, suffix_length, prefix.parse_state);
-  var have = listDiff(ups, goal_counts);
-  var need = listDiff(downs, goal_counts);
-
-  // Map between what you have and need
-  var suffix_map = suffixMap(have, need, goal_counts.length);
-
-  // Print the suffix in a way that matches the parse state
-  var suffix = buildSyncSuffix(prefix, suffix_map, syncBuildFuns());
+  var suffix = buildSuffix(prefix, suffix_map, buildFuns(is_sync), is_sync);
   return suffix;
 }
 
@@ -798,21 +804,13 @@ function syncSuggest(input, allow_multiplex) {
 function updateSuggestion(prefix) {
   var suffix;
 
-  // compute suffix based on mode and first char
+  // Compute suffix based on mode and first char
   if (!prefix) {
     suffix = "531";
-  } else if (prefix[0] === "(") {
-    if (document.getElementById("vanilla").checked) {
-      suffix = syncSuggest(prefix, false);
-    } else {
-      suffix = syncSuggest(prefix, true);
-    }
   } else {
-    if (document.getElementById("vanilla").checked) {
-      suffix = asyncSuggest(prefix, false);
-    } else {
-      suffix = asyncSuggest(prefix, true);
-    }
+    var sync = (prefix[0] === "(");
+    var vanilla = document.getElementById("vanilla").checked;
+    suffix = suggest(prefix, !vanilla, sync);
   }
 
   if (suffix.error != undefined) {
