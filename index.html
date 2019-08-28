@@ -58,6 +58,9 @@
         setTimeout(function() {
             suggestbox.input.focus();
         },0);
+        $(".btn-group > .btn").click(function(){
+          $(this).addClass("active").siblings().removeClass("active");
+        });
         $('input[type=radio]').click(function(){
           var txt = suggestbox.getText();
           Update(txt);
