@@ -815,6 +815,7 @@ function updateSuggestion(prefix) {
 
   if (suffix.error != undefined) {
     suggestbox.options = [];
+    suggestbox.repaint();
     $('#error span').text(suffix.error);
     $('#error').slideDown();
     return;
