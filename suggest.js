@@ -770,6 +770,18 @@ function initialState(is_sync) {
   return AsyncStateEnum.A_NORMAL;
 }
 
+// Fisher-Yates shuffles an array
+function shuffle(array) {
+  var m = array.length, t, i;
+  while (m) {
+    i = Math.floor(Math.random() * m--);
+    t = array[m];
+    array[m] = array[i];
+    array[i] = t;
+  }
+  return array;
+}
+
 // Inputs is a string prefix of a siteswap
 // Returns a suffix or that there is none.
 function suggest(input, allow_multiplex, is_sync) {
