@@ -328,7 +328,6 @@ function syncParseFuns() {
   return parse_funs;
 }
 
-// TODO: we could just have map for sync and async I guess.
 function parseFuns(is_sync) {
   if (is_sync) {
     return syncParseFuns();
@@ -508,27 +507,16 @@ function syncVanillaSuffixLength(s) {
   return -1;
 }
 
-function asyncSuffixLength(prefix, allow_multiplex) {
-  if (allow_multiplex) {
-    return asyncMultiplexSuffixLength(prefix);
-  }
-  return asyncVanillaSuffixLength(prefix);
-}
-
-function syncSuffixLength(prefix, allow_multiplex) {
-  if (allow_multiplex) {
-    return syncMultiplexSuffixLength(prefix);
-  }
-  return syncVanillaSuffixLength(prefix);
-}
-
-// TODO(maybe have this just handle all 4 cases instead of delegating to trivial
-// functions?
 function suffixLength(prefix, allow_multiplex, is_sync) {
-  if (is_sync) {
-    return syncSuffixLength(prefix, allow_multiplex);
+  if (is_sync && allow_multiplex) {
+    return syncMultiplexSuffixLength(prefix);
+  } else if (is_sync && !allow_multiplex) {
+    return syncVanillaSuffixLength(prefix);
+  } else if (!is_sync && allow_multplex) {
+    return asyncMultiplexSuffixLength(prefix);
+  } else {
+    return asyncVanillaSuffixLength(prefix);
   }
-  return asyncSuffixLength(prefix, allow_multiplex);
 }
 
 function goalCounts(ups, downs, suffix_length, parse_state) {
