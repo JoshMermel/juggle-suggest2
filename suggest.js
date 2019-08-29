@@ -512,7 +512,7 @@ function suffixLength(prefix, allow_multiplex, is_sync) {
     return syncMultiplexSuffixLength(prefix);
   } else if (is_sync && !allow_multiplex) {
     return syncVanillaSuffixLength(prefix);
-  } else if (!is_sync && allow_multplex) {
+  } else if (!is_sync && allow_multiplex) {
     return asyncMultiplexSuffixLength(prefix);
   } else {
     return asyncVanillaSuffixLength(prefix);
