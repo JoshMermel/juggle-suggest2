@@ -811,7 +811,18 @@ function updateSuggestion(prefix) {
     var sync = (prefix[0] === "(");
     var vanilla = document.getElementById("vanilla").checked;
     suffix = suggest(prefix, !vanilla, sync);
+    var suffixx = suggest(prefix + "x", !vanilla, sync);
+    if (suffixx.error !== undefined) {
+      suffixx = "x" + suffixx;
+    }
+    console.log("suffix: ", suffix);
+    console.log("suffixx: ", suffixx);
+    if (suffixx.length+1 < suffix.length) {
+      suffix = "x" + suffixx;
+    }
   }
+
+
 
   if (suffix.error != undefined) {
     suggestbox.options = [];
