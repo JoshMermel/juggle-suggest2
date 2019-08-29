@@ -29,7 +29,7 @@ function toInt(c) {
   } else if (c.match(/^[a-z]$/i)) {
     return c.charCodeAt(0) - "a".charCodeAt(0) + 10;
   } else {
-    console.log("unknown char in input", c);
+    // TODO: something better here.
     throw c;
   }
 }
@@ -739,8 +739,8 @@ function syncPreSuffix(s, suffix_map) {
   if (suffix_map[s.siteswap.length - 1] === undefined &&
     (s.parse_state === SyncStateEnum.S_SECOND_BRACE ||
     s.parse_state === SyncStateEnum.S_SECOND_X_OR_BRACE)) {
-    suffix += "])(";
-    s.parse_state = SyncStateEnum.S_FIRST;
+    suffix += "])";
+    s.parse_state = SyncStateEnum.S_NORMAL;
   }
   return suffix;
 }
