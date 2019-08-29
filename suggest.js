@@ -815,8 +815,6 @@ function updateSuggestion(prefix) {
     if (suffixx.error !== undefined) {
       suffixx = "x" + suffixx;
     }
-    console.log("suffix: ", suffix);
-    console.log("suffixx: ", suffixx);
     if (suffixx.length+1 < suffix.length) {
       suffix = "x" + suffixx;
     }
