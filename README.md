@@ -1,7 +1,8 @@
 # juggle-suggest2
 Successor to juggle-suggest 1, now with sync and better multiplex support
 
-unordred todos
+Unordered todos
+ - add a license?
  - animation of the pattern
  - orbits visualizer
  - up/down to cycle through different options

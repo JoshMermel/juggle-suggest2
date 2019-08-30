@@ -443,6 +443,7 @@ function asyncMultiplexSuffixLength(s) {
 function syncMultiplexSuffixLength(s) {
   var first_suffix_len = s.siteswap.length % 2;
   // HACK, fixes (0,0)( -> ) and ( -> )
+  // TODO: make this into a minSuffixLengthToCheck?
   if (s.parse_state === SyncStateEnum.S_FIRST) {
     first_suffix_len += 2;
   }
@@ -486,6 +487,7 @@ function asyncVanillaSuffixLength(s) {
 function syncVanillaSuffixLength(s) {
   var first_suffix_len = s.siteswap.length % 2;
   // HACK, fixes (0,0)( -> ) and ( -> )
+  // TODO: make this into a minSuffixLengthToCheck?
   if (s.parse_state === SyncStateEnum.S_FIRST) {
     first_suffix_len += 2;
   }
@@ -800,6 +802,7 @@ function suggest(input, allow_multiplex, is_sync) {
   return suffix;
 }
 
+// TODO: move this to another module that relies on suggest.js
 // Function for interacting with html.
 function updateSuggestion(prefix) {
   var suffix;
@@ -820,8 +823,6 @@ function updateSuggestion(prefix) {
     }
   }
 
-
-
   if (suffix.error != undefined) {
     suggestbox.options = [];
     suggestbox.repaint();
@@ -836,6 +837,7 @@ function updateSuggestion(prefix) {
   return;
 }
 
+// TODO: move this to another module that relies on suggest.js
 function initSuggestbox() {
   // suggestbox init
   suggestbox = completely(document.getElementById('input'), {
@@ -863,4 +865,14 @@ function initSuggestbox() {
     var txt = suggestbox.getText();
     Update(txt);
   });
+}
+
+// Export for tests
+module.exports = {
+  suggest : suggest,
+  parseSiteswap : parseSiteswap,
+  getUps : getUps,
+  getDowns : getDowns,
+  initialState : initialState,
+  parseFuns : parseFuns,
 }
