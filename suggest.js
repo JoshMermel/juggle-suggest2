@@ -835,3 +835,32 @@ function updateSuggestion(prefix) {
   $('#error').slideUp();
   return;
 }
+
+function initSuggestbox() {
+  // suggestbox init
+  suggestbox = completely(document.getElementById('input'), {
+    fontSize : '24px',
+    fontFamily : 'Arial',
+    color:'#933',
+  });
+  suggestbox.options = ['531'];
+  suggestbox.repaint(); 
+  function Update(txt) {
+    updateSuggestion(txt);
+  }
+  suggestbox.onChange = Update
+
+  // TODO(understand this)
+  setTimeout(function() {
+    suggestbox.input.focus();
+  },0);
+
+  // multiplex/vanilla selector
+  $(".btn-group > .btn").click(function(){
+    $(this).addClass("active").siblings().removeClass("active");
+  });
+  $('input[type=radio]').click(function(){
+    var txt = suggestbox.getText();
+    Update(txt);
+  });
+}

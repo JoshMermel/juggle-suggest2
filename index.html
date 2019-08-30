@@ -42,29 +42,10 @@
     </body>
     <script src="suggest.js"></script>
     <script type="text/javascript">
-    window.onload = function () {
-        // suggestbox init
-        suggestbox = completely(document.getElementById('input'), {
-            fontSize : '24px',
-            fontFamily : 'Arial',
-            color:'#933',
-        });
-        suggestbox.options = ['531'];
-        suggestbox.repaint(); 
-        function Update(txt) {
-            updateSuggestion(txt);
-        }
-        suggestbox.onChange = Update
-        setTimeout(function() {
-            suggestbox.input.focus();
-        },0);
-        $(".btn-group > .btn").click(function(){
-          $(this).addClass("active").siblings().removeClass("active");
-        });
-        $('input[type=radio]').click(function(){
-          var txt = suggestbox.getText();
-          Update(txt);
-        });
+    window.onload = 
+      initSuggestbox()
+      // TODO: init orbits visualizer
+      // TODO: init animation
     }
   </script>
 </html>
