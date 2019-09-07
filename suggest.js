@@ -562,7 +562,7 @@ function mod(n, m) {
 }
 
 // Produces a map from throw location to list of catch locations.
-function suffixMap(have, need, goal_length) {
+function suffixMap(have, need, goal_length, is_sync) {
   var suffix_map = [];
   var toss;
   for (var i = 0; i < have.length; i++) {
@@ -570,6 +570,10 @@ function suffixMap(have, need, goal_length) {
     // Personal preference, I don't like lots of 0's in a suffix.
     if (toss == 0 && goal_length < 36) {
       toss = goal_length;
+    }
+    // Avoids 0xs
+    if (toss === 1 && goal_length < 36 && i % 2 === 0 && is_sync) {
+      toss = goal_length + 1;
     }
     if (suffix_map[have[i]] === undefined) {
       suffix_map[have[i]] = [];
@@ -795,7 +799,7 @@ function suggest(input, allow_multiplex, is_sync) {
   var need = listDiff(downs, goal_counts);
 
   // Map between what you have and need
-  var suffix_map = suffixMap(have, need, goal_counts.length);
+  var suffix_map = suffixMap(have, shuffle(need), goal_counts.length, is_sync);
 
   // Print the suffix in a way that matches the parse state
   var suffix = buildSuffix(prefix, suffix_map, buildFuns(is_sync), is_sync);
