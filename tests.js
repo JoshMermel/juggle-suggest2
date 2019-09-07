@@ -58,6 +58,7 @@ function CheckPrefix(prefix, allow_multiplex, is_sync) {
   CheckPrefix("(4,4)(0,0)(", true, true);
   CheckPrefix("(", true, true);
   CheckPrefix("(0,0", true, true);
+  CheckPrefix("(2x,0)(8,ax)(cx,8)", true, true);
 
   // TODO stuff with no suffixes
   // TODO stuff that doesn't parse

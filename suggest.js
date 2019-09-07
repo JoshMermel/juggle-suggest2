@@ -410,8 +410,8 @@ function noConflict(ups, downs, parse_state) {
   return true;
 }
 
-//It is worth checking up to the point that no throws wrap around modulo pattern
-//length. After that, downs will always be the same.
+// It is worth checking up to the point that no throws wrap around modulo
+// pattern length. After that, downs will always be the same.
 function maxLengthToCheck(s) {
   var max = 0;
   for (var i = 0; i < s.siteswap.length; i++) {
@@ -426,21 +426,32 @@ function maxLengthToCheck(s) {
   return Math.max(max - s.siteswap.length + 2, 2);
 }
 
+function noMultiplexAdded(downs, prefix_len) {
+  for (var i = prefix_len; i < downs.length; i++) {
+    if (downs[i] > 1) {
+      return false;
+    }
+  }
+  return true;
+}
+
 // Returns the length of the shortest suffix.
-function asyncMultiplexSuffixLength(s) {
+function asyncSuffixLength(s, allow_multiplex) {
   var ups = getUps(s);
   var max_length_to_check = maxLengthToCheck(s);
   var downs;
   for (var i = 0; i < max_length_to_check; i++) {
     downs = getDowns(s, i);
     if (noConflict(ups, downs, s.parse_state)) {
-      return i;
+      if (allow_multiplex || noMultiplexAdded(downs, s.siteswap.length)) {
+        return i;
+      }
     }
   }
   return -1;
 }
 
-function syncMultiplexSuffixLength(s) {
+function syncSuffixLength(s, allow_multiplex) {
   var first_suffix_len = s.siteswap.length % 2;
   // HACK, fixes (0,0)( -> ) and ( -> )
   // TODO: make this into a minSuffixLengthToCheck?
@@ -455,70 +466,19 @@ function syncMultiplexSuffixLength(s) {
   for (var i = first_suffix_len; i < max_length_to_check; i+=2) {
     downs = getDowns(s, i);
     if (noConflict(ups, downs, s.parse_state)) {
-      return i;
-    }
-  }
-  return -1;
-}
-
-function noMultiplexAdded(downs, prefix_len) {
-  for (var i = prefix_len; i < downs.length; i++) {
-    if (downs[i] > 1) {
-      return false;
-    }
-  }
-  return true;
-}
-
-function asyncVanillaSuffixLength(s) {
-  var ups = getUps(s);
-  var max_length_to_check = maxLengthToCheck(s);
-  var downs;
-  for (var i = 0; i < max_length_to_check; i++) {
-    downs = getDowns(s, i);
-    if (noConflict(ups, downs, s.parse_state) && 
-      noMultiplexAdded(downs, s.siteswap.length)) {
-      return i;
-    }
-  }
-  return -1;
-}
-
-function syncVanillaSuffixLength(s) {
-  var first_suffix_len = s.siteswap.length % 2;
-  // HACK, fixes (0,0)( -> ) and ( -> )
-  // TODO: make this into a minSuffixLengthToCheck?
-  if (s.parse_state === SyncStateEnum.S_FIRST) {
-    first_suffix_len += 2;
-  }
-  var ups = getUps(s);
-  // Since lengths must be even, this +1 makes sure we actually check the max
-  // length we intend to check.
-  // For some reason I hit a bug in development that made me change this to +3
-  // but I forgot what the input was. At least checking a little longer should
-  // never hurt.
-  var max_length_to_check = maxLengthToCheck(s) + 3;
-  var downs;
-  for (var i = first_suffix_len; i < max_length_to_check; i+=2) {
-    downs = getDowns(s, i);
-    if (noConflict(ups, downs, s.parse_state) && 
-      noMultiplexAdded(downs, s.siteswap.length)) {
-      return i;
+      if (allow_multiplex || noMultiplexAdded(downs, s.siteswap.length)) {
+        return i;
+      }
     }
   }
   return -1;
 }
 
 function suffixLength(prefix, allow_multiplex, is_sync) {
-  if (is_sync && allow_multiplex) {
-    return syncMultiplexSuffixLength(prefix);
-  } else if (is_sync && !allow_multiplex) {
-    return syncVanillaSuffixLength(prefix);
-  } else if (!is_sync && allow_multiplex) {
-    return asyncMultiplexSuffixLength(prefix);
-  } else {
-    return asyncVanillaSuffixLength(prefix);
+  if (is_sync) {
+    return syncSuffixLength(prefix, allow_multiplex);
   }
+  return asyncSuffixLength(prefix, allow_multiplex);
 }
 
 function goalCounts(ups, downs, suffix_length, parse_state) {
@@ -819,13 +779,6 @@ function updateSuggestion(prefix) {
     var sync = (prefix[0] === "(");
     var vanilla = document.getElementById("vanilla").checked;
     suffix = suggest(prefix, !vanilla, sync);
-    var suffixx = suggest(prefix + "x", !vanilla, sync);
-    if (suffixx.error !== undefined) {
-      suffixx = "x" + suffixx;
-    }
-    if (suffixx.length+1 < suffix.length) {
-      suffix = "x" + suffixx;
-    }
   }
 
   if (suffix.error != undefined) {
@@ -881,3 +834,5 @@ module.exports = {
   initialState : initialState,
   parseFuns : parseFuns,
 }
+
+console.log(suggest("(2x,0)(8,ax)(cx,8)x", true, true));

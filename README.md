@@ -3,6 +3,7 @@ Successor to juggle-suggest 1, now with sync and better multiplex support
 
 Unordered todos
  - add a license?
+ - rewrite in typescript?
  - animation of the pattern
  - orbits visualizer
  - up/down to cycle through different options
