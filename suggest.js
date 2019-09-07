@@ -532,7 +532,7 @@ function suffixMap(have, need, goal_length, is_sync) {
       toss = goal_length;
     }
     // Avoids 0xs
-    if (toss === 1 && goal_length < 36 && i % 2 === 0 && is_sync) {
+    if (toss === 1 && goal_length < 36 && have[i] % 2 === 0 && is_sync) {
       toss = goal_length + 1;
     }
     if (suffix_map[have[i]] === undefined) {
@@ -834,5 +834,3 @@ module.exports = {
   initialState : initialState,
   parseFuns : parseFuns,
 }
-
-console.log(suggest("(2x,0)(8,ax)(cx,8)x", true, true));
