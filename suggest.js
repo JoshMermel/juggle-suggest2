@@ -580,6 +580,7 @@ function suffixMap(have, need, goal_length, is_sync) {
     }
     suffix_map[have[i]].push(toss);
   }
+  suffix_map.forEach(function(tosses) { tosses.sort(); });
   return suffix_map;
 }
 
