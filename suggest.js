@@ -337,7 +337,9 @@ function parseFuns(is_sync) {
 
 // Takes a string representation of a siteswap
 // Parses it into a list list int and a parse state.
-function parseSiteswap(str, initial_state, parse_funs) {
+function parseSiteswap(str, is_sync) {
+  var initial_state = initialState(is_sync)
+  var parse_funs = parseFuns(is_sync);
   var prefix = {};
   prefix.parse_state = initial_state;
   prefix.siteswap = [];
@@ -708,7 +710,8 @@ function preSuffix(s, suffix_map, is_sync) {
 }
 
 // Builds a suffix using the state transition graph.
-function buildSuffix(s, suffix_map, build_funs, is_sync) {
+function buildSuffix(s, suffix_map, is_sync) {
+  var build_funs = buildFuns(is_sync);
   var suffix = preSuffix(s, suffix_map, is_sync);
   for (var i = 0; i < suffix_map.length; i++) {
     if (suffix_map[i] !== undefined) {
@@ -741,7 +744,7 @@ function shuffle(array) {
 // Returns a suffix or that there is none.
 function suggest(input, allow_multiplex, is_sync) {
   // Parse
-  var prefix = parseSiteswap(input, initialState(is_sync), parseFuns(is_sync));
+  var prefix = parseSiteswap(input, is_sync);
   if (prefix.error != undefined) {
     return prefix;
   }
@@ -763,7 +766,7 @@ function suggest(input, allow_multiplex, is_sync) {
   var suffix_map = suffixMap(have, shuffle(need), goal_counts.length, is_sync);
 
   // Print the suffix in a way that matches the parse state
-  var suffix = buildSuffix(prefix, suffix_map, buildFuns(is_sync), is_sync);
+  var suffix = buildSuffix(prefix, suffix_map, is_sync);
   return suffix;
 }
 
