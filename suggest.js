@@ -810,7 +810,7 @@ function initSuggestbox() {
   function Update(txt) {
     updateSuggestion(txt);
   }
-  suggestbox.onChange = Update
+  suggestbox.onChange = Update;
 
   // TODO(understand this)
   setTimeout(function() {
@@ -835,4 +835,4 @@ module.exports = {
   getDowns : getDowns,
   initialState : initialState,
   parseFuns : parseFuns,
-}
+};
