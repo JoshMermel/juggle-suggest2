@@ -338,10 +338,9 @@ function parseFuns(is_sync) {
 // Takes a string representation of a siteswap
 // Parses it into a list list int and a parse state.
 function parseSiteswap(str, is_sync) {
-  var initial_state = initialState(is_sync)
   var parse_funs = parseFuns(is_sync);
   var prefix = {};
-  prefix.parse_state = initial_state;
+  prefix.parse_state = initialState(is_sync);
   prefix.siteswap = [];
 
   for (var i = 0; i < str.length; i++) {
