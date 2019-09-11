@@ -6,8 +6,10 @@
   <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
   <script type="text/javascript" src="https://d3js.org/d3.v3.min.js"></script>
   <script src='http://lorenzoongithub.github.io/completely/complete.ly.1.0.1.min.js'></script>
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/7.1.0/bootstrap-slider.min.js"></script>
   <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" />
   <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/7.1.0/css/bootstrap-slider.min.css" />
+
   <link rel="stylesheet" type="text/css" href="style.css">
   </head>
   <body>
@@ -31,6 +33,9 @@
                   <input type="radio" name="options" id="multiplex" autocomplete="off" checked="checked"> Multiplex suggestions </label>
               </div>
               <hr/>
+              <span> Animation speed </span>
+              <input id="animation_speed" type="text" data-slider-min="1" data-slider-max="100" data-slider-step="1" data-slider-value="3"/>
+              <hr/>
               <div>
                 Animation and orbit visualizations not done. Check out
                 jbuckland.com/juggle-graph and jugglinglab.org/anim in the
@@ -51,9 +56,12 @@
     <script src="suggest.js"></script>
     <script type="text/javascript">
     window.onload = function () {
-      initSuggestbox()
+      initSuggestbox();
+        $("#animation_speed").slider({value: 20});
+        $("#animation_speed").on("change", function(slideEvt) {
+         timeout = 50 - (40 * slideEvt.value.newValue / 100);
+        });
       // TODO: init orbits visualizer
-      // TODO: init animation
     }
   </script>
 </html>
