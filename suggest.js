@@ -832,7 +832,7 @@ function initSuggestbox() {
     Update(txt);
   });
 
-  startAnimation("531", 1);
+  // startAnimation("531", 1);
 }
 
 // Export for tests
