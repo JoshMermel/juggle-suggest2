@@ -1,3 +1,4 @@
+var timeout = 20;
 var breakloop = [false];
 function startAnimation(user_input, index) {
 /******/ (function(modules) { // webpackBootstrap
@@ -174,7 +175,7 @@ function startAnimation(user_input, index) {
 	
 		if (timerEnabled) {
       if (!breakloop[index]) {
-        setTimeout(loop, timerInterval);
+        setTimeout(loop, timeout);
       }
     }
 	}
@@ -270,7 +271,7 @@ function startAnimation(user_input, index) {
 	
 		jmlib.startJuggle();
 	
-		timerInterval = 10;
+		timerInterval = 20;
 		timerEnabled = true;
 		siteonscreenEnabled = true;
 		loop();
