@@ -4,7 +4,7 @@ Successor to juggle-suggest 1, now with sync and better multiplex support
 Unordered todos
  - add a license?
  - rewrite in typescript?
- - animation of the pattern
+ - write my own animator whose interface I understand.
  - orbits visualizer
  - up/down to cycle through different options
  - random button / random initial state?

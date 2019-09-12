@@ -831,6 +831,8 @@ function initSuggestbox() {
     var txt = suggestbox.getText();
     Update(txt);
   });
+
+  startAnimation("531", 1);
 }
 
 // Export for tests
