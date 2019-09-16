@@ -242,8 +242,6 @@ function startAnimation(user_input, index) {
 	}
 	
 	function initialize() {
-    console.log(new Error().stack);
-
 		var args = getArgs();
 		var site = user_input,
 		    style = args.hasOwnProperty('style') ? args.style : 'Normal',

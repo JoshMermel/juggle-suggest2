@@ -797,7 +797,6 @@ function updateSuggestion(prefix) {
 
   breakloop[breakloop.length - 1] = true;
   breakloop.push(false);
-  console.log("setting breakloop to true because of input");
 
   startAnimation(prefix + suffix, breakloop.length - 1);
   return;
