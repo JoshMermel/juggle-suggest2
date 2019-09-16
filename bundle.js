@@ -1,6 +1,6 @@
 var timeout = 20;
 var breakloop = [false];
-function startAnimation(user_input, index) {
+function startAnimation(user_input, index, user_style) {
 /******/ (function(modules) { // webpackBootstrap
 /******/ 	// The module cache
 /******/ 	var installedModules = {};
@@ -244,7 +244,7 @@ function startAnimation(user_input, index) {
 	function initialize() {
 		var args = getArgs();
 		var site = user_input,
-		    style = args.hasOwnProperty('style') ? args.style : 'Normal',
+		    style = user_style,
 		    pattern = args.hasOwnProperty('pattern') ? args.pattern : null,
 		    pattNo = args.hasOwnProperty('pattno') ? args.pattno : null;
 	

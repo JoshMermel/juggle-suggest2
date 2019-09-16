@@ -797,8 +797,9 @@ function updateSuggestion(prefix) {
 
   breakloop[breakloop.length - 1] = true;
   breakloop.push(false);
+  var style = document.querySelector("input[name='style_options']:checked").id;
 
-  startAnimation(prefix + suffix, breakloop.length - 1);
+  startAnimation(prefix + suffix, breakloop.length - 1, style);
   return;
 }
 
@@ -823,6 +824,7 @@ function initSuggestbox() {
   },0);
 
   // multiplex/vanilla selector
+  // Also style selector
   $(".btn-group > .btn").click(function(){
     $(this).addClass("active").siblings().removeClass("active");
   });
