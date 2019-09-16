@@ -34,7 +34,7 @@
               </div>
               <hr/>
               <span> Animation speed </span>
-              <input id="animation_speed" type="text" data-slider-min="1" data-slider-max="100" data-slider-step="1" data-slider-value="3"/>
+              <input id="animation_speed" type="text" data-slider-min="1" data-slider-max="30" data-slider-step="1" data-slider-value="3"/>
               <hr/>
               <div>
                 Orbit visualizations not done, check out
@@ -60,7 +60,7 @@
       initSuggestbox();
         $("#animation_speed").slider({value: 20});
         $("#animation_speed").on("change", function(slideEvt) {
-         timeout = 50 - (40 * slideEvt.value.newValue / 100);
+         timeout = 1000 / (slideEvt.value.newValue + 14);
         });
         updateSuggestion("");
       // TODO: init orbits visualizer
