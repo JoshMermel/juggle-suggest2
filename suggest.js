@@ -772,8 +772,6 @@ function suggest(input, allow_multiplex, is_sync) {
 // TODO: move this to another module that relies on suggest.js
 // Function for interacting with html.
 function updateSuggestion(prefix) {
-  console.log("updating");
-
   var suffix;
 
   // Compute suffix based on mode and first char
@@ -829,7 +827,6 @@ function initSuggestbox() {
     $(this).addClass("active").siblings().removeClass("active");
   });
   $('input[name=options]').click(function(){
-    console.log("responding to click");
     var txt = suggestbox.getText();
     Update(txt);
   });
