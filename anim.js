@@ -304,11 +304,3 @@ function draw(timestamp) {
 
 // end animationmanager
 
-// var siteswap = [[4], [2,1], [2]];
-// var siteswap = [[5,3,1],[4],[8,2],[4],[3]];
-// var siteswap = [[12],[1],[8],[1],[4],[1],[3],[12],[3],[8],[3],[4]];
-var siteswap = [[7], [1], [3], [5]]
-
-setSiteswap(siteswap, true);
-StartAnimation();
-
