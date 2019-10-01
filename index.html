@@ -7,6 +7,7 @@
   <script type="text/javascript" src="https://d3js.org/d3.v3.min.js"></script>
   <script src='http://lorenzoongithub.github.io/completely/complete.ly.1.0.1.min.js'></script>
   <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/7.1.0/bootstrap-slider.min.js"></script>
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/randomcolor/0.5.4/randomColor.min.js"></script>
   <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" />
   <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/7.1.0/css/bootstrap-slider.min.css" />
 
@@ -33,36 +34,19 @@
                   <input type="radio" name="options" id="multiplex" autocomplete="off" checked="checked"> Multiplex suggestions </label>
               </div>
               <hr/>
-              <div class="btn-group" data-toggle="buttons" id="style-toggle">
-                <label class="btn btn-primary">
-                  <input type="radio" name="style_options" id="Normal" autocomplete="off" checked="checked"> Normal </label>
-                <label class="btn btn-primary active">
-                  <input type="radio" name="style_options" id="Reverse" autocomplete="off"> Reverse </label>
-                <label class="btn btn-primary active">
-                  <input type="radio" name="style_options" id="Mills Mess" autocomplete="off"> Mills Mess </label>
-                <label class="btn btn-primary active">
-                  <input type="radio" name="style_options" id="Shower" autocomplete="off"> Shower </label>
-                <label class="btn btn-primary active">
-                  <input type="radio" name="style_options" id="Windmill" autocomplete="off"> Windmill </label>
-              </div>
-              <hr/>
               <span> Animation speed </span>
-              <input id="animation_speed" type="text" data-slider-min="1" data-slider-max="30" data-slider-step="1" data-slider-value="3"/>
+              <input id="animation_speed" type="text" data-slider-min="1" data-slider-max="20" data-slider-step="1" data-slider-value="3"/>
               <hr/>
               <div>
                 Orbit visualizations not done, check out
-                jbuckland.com/juggle-graph in the meantime. Animation done using
-                <a href="http://jugglemaster.net/">jmlim-js by Per Johan
-                  Groland</a>
+                jbuckland.com/juggle-graph in the meantime. 
               </div>
               <hr/>
           </div>
           <div id="stage" class="col-md-6">
-            <canvas id="cv" width="440px" height="360px"></canvas>
-            <div id="siteonscreen"></div>
-            <script src="bundle.js"></script>
+            <canvas id="canvas" width="440px" height="360px"></canvas>
+            <script src="anim.js"></script>
           </div>
-          
       </div>
     </div>
 
@@ -71,11 +55,13 @@
     <script type="text/javascript">
     window.onload = function () {
       initSuggestbox();
-        $("#animation_speed").slider({value: 20});
+        $("#animation_speed").slider({value: 10});
         $("#animation_speed").on("change", function(slideEvt) {
-         timeout = 1000 / (slideEvt.value.newValue + 14);
+         pace = slideEvt.value.newValue / 80;
         });
-        updateSuggestion("");
+        setSiteswap([[5],[3],[1]], false);
+        StartAnimation();
+
       // TODO: init orbits visualizer
     }
   </script>

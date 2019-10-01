@@ -772,6 +772,8 @@ function suggest(input, allow_multiplex, is_sync) {
 // TODO: move this to another module that relies on suggest.js
 // Function for interacting with html.
 function updateSuggestion(prefix) {
+  console.log("updating");
+
   var suffix;
 
   // Compute suffix based on mode and first char
@@ -795,11 +797,9 @@ function updateSuggestion(prefix) {
   suggestbox.repaint();
   $('#error').slideUp();
 
-  breakloop[breakloop.length - 1] = true;
-  breakloop.push(false);
-  var style = document.querySelector("input[name='style_options']:checked").id;
+  var is_sync = (prefix[0] === "(");
+  setSiteswap(parseSiteswap(prefix + suffix, is_sync).siteswap, is_sync);
 
-  startAnimation(prefix + suffix, breakloop.length - 1, style);
   return;
 }
 
@@ -828,11 +828,11 @@ function initSuggestbox() {
   $(".btn-group > .btn").click(function(){
     $(this).addClass("active").siblings().removeClass("active");
   });
-  $('input[type=radio]').click(function(){
+  $('input[name=options]').click(function(){
+    console.log("responding to click");
     var txt = suggestbox.getText();
     Update(txt);
   });
-
   // startAnimation("531", 1);
 }
 
