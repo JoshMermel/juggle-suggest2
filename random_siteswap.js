@@ -83,7 +83,7 @@ function randomAsync(vanilla) {
 function randomSync(vanilla) {
   var cards = []
   var len = randInt(2,4);
-  var max = randInt(5,9);
+  var max = randInt(4,8);
   var max_multiplicity = randInt(2,4);
   if (vanilla) {
     max_multiplicity = 1;
