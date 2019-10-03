@@ -95,9 +95,12 @@ function randomSync(vanilla) {
     cards.push(right_card);
   }
   return convertCards(cards);
-
 }
 
-// TODO(jmerm): sync.
-// TODO(jmerm): make random cards less multiplex-y so they results are more
-// interesting.
+function randomSiteswap(vanilla, is_sync) {
+  if (is_sync) {
+    return randomSync(vanilla);
+  } else {
+    return randomAsync(vanilla);
+  }
+}

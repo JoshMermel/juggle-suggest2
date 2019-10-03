@@ -784,11 +784,9 @@ function updateSuggestion(prefix) {
   if (!prefix) {
     var vanilla = document.getElementById("vanilla").checked;
     if (Math.random() < 0.5) {
-      suffix = printSiteswap(randomAsync(vanilla), false);
-    } else {
-      suffix = printSiteswap(randomSync(vanilla), true);
       sync = true;
     }
+    suffix = printSiteswap(randomSiteswap(vanilla, sync), sync);
   } else {
     sync = (prefix[0] === "(");
     suffix = suggest(prefix, !vanilla, sync);
