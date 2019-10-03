@@ -769,6 +769,11 @@ function suggest(input, allow_multiplex, is_sync) {
   return suffix;
 }
 
+function printSiteswap(list, is_sync) {
+  var s = {parse_state: initialState(is_sync), siteswap: []};
+  return buildSuffix(s, list, is_sync);
+}
+
 // TODO: move this to another module that relies on suggest.js
 // Function for interacting with html.
 function updateSuggestion(prefix) {
@@ -776,7 +781,7 @@ function updateSuggestion(prefix) {
 
   // Compute suffix based on mode and first char
   if (!prefix) {
-    suffix = "531";
+    suffix = printSiteswap(randomAsync());
   } else {
     var sync = (prefix[0] === "(");
     var vanilla = document.getElementById("vanilla").checked;
@@ -830,7 +835,7 @@ function initSuggestbox() {
     var txt = suggestbox.getText();
     Update(txt);
   });
-  // startAnimation("531", 1);
+  updateSuggestion("");
 }
 
 // Export for tests

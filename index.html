@@ -53,6 +53,7 @@
     </body>
     <script src="suggest.js"></script>
     <script src="anim.js"></script>
+    <script src="random_siteswap.js"></script>
     <script type="text/javascript">
     window.onload = function () {
       initSuggestbox();
@@ -60,7 +61,8 @@
         $("#animation_speed").on("change", function(slideEvt) {
          pace = slideEvt.value.newValue / 80;
         });
-        setSiteswap([[5],[3],[1]], false);
+        // var initial_siteswap = randomAsync();
+        // setSiteswap(initial_siteswap, false);
         StartAnimation();
 
       // TODO: init orbits visualizer
