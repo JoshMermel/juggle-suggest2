@@ -781,6 +781,7 @@ function updateSuggestion(prefix) {
 
   // Compute suffix based on mode and first char
   if (!prefix) {
+    // TODO(jmerm): make this sync sometimes
     suffix = printSiteswap(randomAsync());
   } else {
     var sync = (prefix[0] === "(");

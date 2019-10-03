@@ -67,3 +67,7 @@ function randomAsync() {
   }
   return convertCards(cards);
 }
+
+// TODO(jmerm): sync.
+// TODO(jmerm): make random cards less multiplex-y so they results are more
+// interesting.
