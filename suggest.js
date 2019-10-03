@@ -778,15 +778,19 @@ function printSiteswap(list, is_sync) {
 // Function for interacting with html.
 function updateSuggestion(prefix) {
   var suffix;
+  var sync;
 
-  // Compute suffix based on mode and first char
+  var vanilla = document.getElementById("vanilla").checked;
   if (!prefix) {
-    // TODO(jmerm): make this sync sometimes
     var vanilla = document.getElementById("vanilla").checked;
-    suffix = printSiteswap(randomAsync(vanilla));
+    if (Math.random() < 0.5) {
+      suffix = printSiteswap(randomAsync(vanilla), false);
+    } else {
+      suffix = printSiteswap(randomSync(vanilla), true);
+      sync = true;
+    }
   } else {
-    var sync = (prefix[0] === "(");
-    var vanilla = document.getElementById("vanilla").checked;
+    sync = (prefix[0] === "(");
     suffix = suggest(prefix, !vanilla, sync);
   }
 
@@ -802,8 +806,7 @@ function updateSuggestion(prefix) {
   suggestbox.repaint();
   $('#error').slideUp();
 
-  var is_sync = (prefix[0] === "(");
-  setSiteswap(parseSiteswap(prefix + suffix, is_sync).siteswap, is_sync);
+  setSiteswap(parseSiteswap(prefix + suffix, sync).siteswap, sync);
 
   return;
 }
@@ -816,7 +819,6 @@ function initSuggestbox() {
     fontFamily : 'Arial',
     color:'#933',
   });
-  suggestbox.options = ['531'];
   suggestbox.repaint(); 
   function Update(txt) {
     updateSuggestion(txt);

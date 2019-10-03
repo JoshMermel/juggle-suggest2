@@ -19,13 +19,13 @@ function makeRandomRange(x) {
   };
 }
 
-function randomCard(max_toss, max_multiplicity) {
+function randomCard(min_toss, max_toss, max_multiplicity) {
   var ret = [];
   // TODO(sometimes do zeros);
   var multiplicity = randInt(1, max_multiplicity);
-  var generate = makeRandomRange(max_toss);
+  var generate = makeRandomRange(max_toss - min_toss);
   for (var i = 0; i < multiplicity; i++) {
-    ret.push(generate()+1);
+    ret.push(generate() + min_toss);
   }
   ret.sort(function(a, b){return b-a});
   if (!ret) {
@@ -45,7 +45,6 @@ function handleCard(card, accum) {
 }
 
 function convertCards(cards) {
-  console.log("converting: ", cards);
   var ret = [];
   // handle each card one by one
   for (var i = 0; i < cards.length; i++) {
@@ -76,9 +75,27 @@ function randomAsync(vanilla) {
     max_multiplicity = 1;
   }
   for (var i = 0; i < len; i++) {
-    cards.push(randomCard(10, max_multiplicity));
+    cards.push(randomCard(1, 10, max_multiplicity));
   }
   return convertCards(cards);
+}
+
+function randomSync(vanilla) {
+  var cards = []
+  var len = randInt(2,4);
+  var max = randInt(5,9);
+  var max_multiplicity = randInt(2,4);
+  if (vanilla) {
+    max_multiplicity = 1;
+  }
+  for (var i = 0; i < len; i++) {
+    var right_card = randomCard(1, 10, max_multiplicity);
+    var left_card = randomCard(1 + right_card.length, 10, max_multiplicity);
+    cards.push(left_card);
+    cards.push(right_card);
+  }
+  return convertCards(cards);
+
 }
 
 // TODO(jmerm): sync.
