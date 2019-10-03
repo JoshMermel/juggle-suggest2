@@ -826,7 +826,7 @@ function initSuggestbox() {
   $(".btn-group > .btn").click(function(){
     $(this).addClass("active").siblings().removeClass("active");
   });
-  $('input[name=options]').click(function(){
+  $('input[name=options]').change(function(){
     var txt = suggestbox.getText();
     Update(txt);
   });
