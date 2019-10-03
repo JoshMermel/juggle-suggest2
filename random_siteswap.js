@@ -6,20 +6,29 @@ function randInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function intToCard(i) {
-  var bin = [];
-  while (i > 0) {
-    bin.push(i % 2);
-    i = ~~(i/2);
-  }
+// https://stackoverflow.com/a/11809348
+function makeRandomRange(x) {
+  var range = new Array(x),
+    pointer = x;
+  return function getRandom() {
+    pointer = (pointer-1+x) % x;
+    var random = Math.floor(Math.random() * pointer);
+    var num = (random in range) ? range[random] : random;
+    range[random] = (pointer in range) ? range[pointer] : pointer;
+    return range[pointer] = num;
+  };
+}
 
-  ret = [];
-  for (var i = bin.length - 1; i >= 0; i--) {
-    if (bin[i] === 1) {
-      ret.push(i+1);
-    }
+function randomCard(max_toss, max_multiplicity) {
+  var ret = [];
+  // TODO(sometimes do zeros);
+  var multiplicity = randInt(1, max_multiplicity);
+  var generate = makeRandomRange(max_toss);
+  for (var i = 0; i < multiplicity; i++) {
+    ret.push(generate()+1);
   }
-  if (!ret.length) {
+  ret.sort(function(a, b){return b-a});
+  if (!ret) {
     ret = [0];
   }
   return ret;
@@ -58,12 +67,16 @@ function convertCards(cards) {
 }
 
 
-function randomAsync() {
+function randomAsync(vanilla) {
   var cards = []
   var len = randInt(4,9);
   var max = randInt(5,9);
+  var max_multiplicity = randInt(2,4);
+  if (vanilla) {
+    max_multiplicity = 1;
+  }
   for (var i = 0; i < len; i++) {
-    cards.push(intToCard(randInt(0,127)));
+    cards.push(randomCard(10, max_multiplicity));
   }
   return convertCards(cards);
 }

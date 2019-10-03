@@ -782,7 +782,8 @@ function updateSuggestion(prefix) {
   // Compute suffix based on mode and first char
   if (!prefix) {
     // TODO(jmerm): make this sync sometimes
-    suffix = printSiteswap(randomAsync());
+    var vanilla = document.getElementById("vanilla").checked;
+    suffix = printSiteswap(randomAsync(vanilla));
   } else {
     var sync = (prefix[0] === "(");
     var vanilla = document.getElementById("vanilla").checked;
