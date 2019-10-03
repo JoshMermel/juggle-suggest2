@@ -99,9 +99,18 @@ function randomSync(vanilla) {
 }
 
 function randomSiteswap(vanilla, is_sync) {
+  var ret = [];
   if (is_sync) {
-    return randomSync(vanilla);
+    ret = randomSync(vanilla);
   } else {
-    return randomAsync(vanilla);
+    ret = randomAsync(vanilla);
   }
+  for (var i = 0; i < ret.length; i++) {
+    for (var j = 0; j < ret[i].length; j++) {
+      while (ret[i][j] > 15) {
+        ret[i][j] %= ret.length;
+      }
+    }
+  }
+  return ret;
 }
