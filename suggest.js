@@ -781,8 +781,8 @@ function updateSuggestion(prefix) {
   var sync;
 
   var vanilla = document.getElementById("vanilla").checked;
+  // TODO(jmerm): also special case input being just '('?
   if (!prefix) {
-    var vanilla = document.getElementById("vanilla").checked;
     if (Math.random() < 0.5) {
       sync = true;
     }
