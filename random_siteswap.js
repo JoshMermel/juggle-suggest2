@@ -28,7 +28,7 @@ function randomCard(min_toss, max_toss, max_multiplicity) {
     ret.push(generate() + min_toss);
   }
   ret.sort(function(a, b){return b-a});
-  if (!ret) {
+  if (!ret || (math.Random() < 0.5)) {
     ret = [0];
   }
   return ret;
