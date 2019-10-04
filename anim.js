@@ -169,6 +169,9 @@ function Pos(orbit, time, is_sync) {
   ret.time = mod(ret.time, 2 * arraysum(orbit.toss_seq));
 
   // figure out which toss of the toss seq we are on
+  // TODO(jmerm): the loop invariant here is weird and complicated. Maybe change
+  // the semantics of toss_lhs or something so we can remove the cleanup after
+  // the loop.
   var toss_index = 0;
   while (ret.time >= 0) {
     applyToss(orbit, toss_index, ret, is_sync);

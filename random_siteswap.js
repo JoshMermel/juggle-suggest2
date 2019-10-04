@@ -108,7 +108,7 @@ function randomSiteswap(vanilla, is_sync) {
   for (var i = 0; i < ret.length; i++) {
     for (var j = 0; j < ret[i].length; j++) {
       while (ret[i][j] > 15) {
-        ret[i][j] %= ret.length;
+        ret[i][j] -= ret.length;
       }
     }
   }
