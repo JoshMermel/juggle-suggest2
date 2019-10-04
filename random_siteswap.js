@@ -69,11 +69,15 @@ function convertCards(cards) {
 
 function randomAsync(vanilla) {
   var cards = []
-  var len = randInt(4,9);
-  var max = randInt(5,9);
-  var max_multiplicity = randInt(2,4);
+  var len, max, max_multiplicity;
   if (vanilla) {
+    len = randInt(4,15);
+    max = randInt(5,15);
     max_multiplicity = 1;
+  } else {
+    len = randInt(4,9);
+    max = randInt(5,9);
+    max_multiplicity = randInt(2,4);
   }
   for (var i = 0; i < len; i++) {
     cards.push(randomCard(1, 10, max_multiplicity));
@@ -83,11 +87,15 @@ function randomAsync(vanilla) {
 
 function randomSync(vanilla) {
   var cards = []
-  var len = randInt(2,4);
-  var max = randInt(4,8);
-  var max_multiplicity = randInt(2,4);
+  var len, max, max_multiplicity;
   if (vanilla) {
+    len = randInt(2,8);
+    max = randInt(5,15);
     max_multiplicity = 1;
+  } else {
+    len = randInt(2,4);
+    max = randInt(5,9);
+    max_multiplicity = randInt(2,4);
   }
   for (var i = 0; i < len; i++) {
     var right_card = randomCard(1, 10, max_multiplicity);
