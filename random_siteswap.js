@@ -31,6 +31,7 @@ function randomCard(min_toss, max_toss, max_multiplicity) {
   } else {
     // Pick actual multiplicty by giving [0,0.5] to 1, [0.5,0.75] to 2 ...
     // up to max multiplicity. Unused range goes to 1.
+    // TODO(jmerm): surely there's a way to replace this with some log_2 math.
     var increaser = Math.random();
     for (let i = 0; i < max_multiplicity; i++) {
       if (increaser < 1) {
@@ -43,12 +44,12 @@ function randomCard(min_toss, max_toss, max_multiplicity) {
     }
   }
 
-  // pick that many tosses and sort descending
+  // Pick that many tosses and sort descending
   var generate = makeRandomRange(max_toss - min_toss);
   for (var i = 0; i < multiplicity; i++) {
     ret.push(generate() + min_toss);
   }
-  ret.sort(function(a, b){return b-a});
+  ret.sort(function(a, b){return b-a;});
   return ret;
 }
 
@@ -86,7 +87,7 @@ function convertCards(cards) {
 // TODO(jmerm): tune max, len, etc depending on mode.
 
 function randomAsync(vanilla) {
-  var cards = []
+  var cards = [];
   var len, max, max_multiplicity;
   if (vanilla) {
     len = randInt(4,15);
@@ -104,7 +105,7 @@ function randomAsync(vanilla) {
 }
 
 function randomSync(vanilla) {
-  var cards = []
+  var cards = [];
   var len, max, max_multiplicity;
   if (vanilla) {
     len = randInt(2,8);

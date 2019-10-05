@@ -18,7 +18,7 @@ function maxThrow(siteswap, is_sync) {
 
   for (var i = 0; i < siteswap.length; ++i) {
     for (let toss of siteswap[i]) {
-      var height = toss;
+      height = toss;
       if (is_sync && height % 2 === 1) {
         if (i % 2 === 0) {
           height -= 1;
@@ -40,6 +40,7 @@ function mod(n, m) {
 // Prints the orbits of a siteswap for debugging.
 // Each row represents an orbit
 // Each column represents a time.
+// For debugging only.
 function printSiteswapAsOrbits(siteswap, is_sync) {
   var orbits = splitOrbits(siteswap, is_sync);
   console.log(orbits);
@@ -226,8 +227,8 @@ function Ball(orbit, is_sync) {
       // do a dwell from catch to throw
       duration = dwell;
       progress = dwell + pos.time - pos.toss;
-      source_x = catch_x[pos.catch_lhs]
-      dest_x = throw_x[pos.catch_lhs]
+      source_x = catch_x[pos.catch_lhs];
+      dest_x = throw_x[pos.catch_lhs];
       // make dwell smaller for low throws.
       //peak_y = -1 * Math.min(dwell_distance, dwell_distance * pos.toss / 10);
       peak_y = -1 * dwell_distance;
@@ -237,7 +238,7 @@ function Ball(orbit, is_sync) {
       this.y = peak_y * ((this.x-source_x)*(this.x-dest_x)) /
         ((peak_x-source_x)*(peak_x-dest_x));
     }
-  }
+  };
   this.drawSelf = function(ctx, max_height) {
     var canvas_width = ctx.canvas.clientWidth;
     var canvas_height = ctx.canvas.clientHeight;
