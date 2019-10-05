@@ -91,11 +91,11 @@ function randomAsync(vanilla) {
   var len, max, max_multiplicity;
   if (vanilla) {
     len = randInt(4,15);
-    max = randInt(5,15);
+    max = randInt(4,15);
     max_multiplicity = 1;
   } else {
     len = randInt(4,9);
-    max = randInt(5,9);
+    max = randInt(4,9);
     max_multiplicity = randInt(2,6);
   }
   for (var i = 0; i < len; i++) {
@@ -109,11 +109,11 @@ function randomSync(vanilla) {
   var len, max, max_multiplicity;
   if (vanilla) {
     len = randInt(2,8);
-    max = randInt(5,15);
+    max = randInt(4,15);
     max_multiplicity = 1;
   } else {
     len = randInt(2,4);
-    max = randInt(5,9);
+    max = randInt(4,9);
     max_multiplicity = randInt(2,6);
   }
   for (var i = 0; i < len; i++) {
