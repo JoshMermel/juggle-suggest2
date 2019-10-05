@@ -24,19 +24,23 @@ function randomCard(min_toss, max_toss, max_multiplicity) {
     return [0];
   }
   var ret = [];
-
-  // Pick actual multiplicty by giving [0,0.5] to 1, [0.5,0.75] to 2 ...
-  // up to max multiplicity. Unused range goes to 1.
   var multiplicity = 0;
-  var increaser = Math.random();
-  for (let i = 0; i < max_multiplicity; i++) {
-    if (increaser < 1) {
-      increaser *= 2;
-      multiplicity += 1;
-    }
-  }
-  if (increaser < 1) {
+
+  if (max_multiplicity === 1) {
     multiplicity = 1;
+  } else {
+    // Pick actual multiplicty by giving [0,0.5] to 1, [0.5,0.75] to 2 ...
+    // up to max multiplicity. Unused range goes to 1.
+    var increaser = Math.random();
+    for (let i = 0; i < max_multiplicity; i++) {
+      if (increaser < 1) {
+        increaser *= 2;
+        multiplicity += 1;
+      }
+    }
+    if (increaser < 1) {
+      multiplicity = 1;
+    }
   }
 
   // pick that many tosses and sort descending
