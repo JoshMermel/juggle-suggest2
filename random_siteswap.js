@@ -84,8 +84,6 @@ function convertCards(cards) {
   return ret;
 }
 
-// TODO(jmerm): tune max, len, etc depending on mode.
-
 function randomAsync(vanilla) {
   var cards = [];
   var len, max, max_multiplicity;
