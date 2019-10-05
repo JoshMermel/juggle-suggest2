@@ -772,7 +772,15 @@ function suggest(input, allow_multiplex, is_sync) {
 // Like suggest but adds an x to the input before trying and doesn't return
 // helpful errors on failure.
 function suggestWithX(input, allow_multiplex, is_sync) {
-  // TODO(jmerm): check state before doing any of this?
+  var parsed = parseSiteswap(input + 'x', is_sync);
+  if (parsed.error !== undefined || 
+    [ SyncStateEnum.S_FIRST_X,
+      SyncStateEnum.S_FIRST_X_OR_BRACE,
+      SyncStateEnum.S_SECOND_X,
+      SyncStateEnum.S_SECOND_X_OR_BRACE 
+    ].indexOf(parsed.parse_state) >= 0) {
+    return undefined;
+  }
   suffix = suggest(input + 'x', allow_multiplex, is_sync);
   if (suffix.error !== undefined) {
     return undefined;
@@ -786,14 +794,13 @@ function printSiteswap(list, is_sync) {
   return buildSuffix(s, list, is_sync);
 }
 
-// TODO: move this to another module that relies on suggest.js
+// TODO: move this to another module that relies on this file
 // Function for interacting with html.
 function updateSuggestion(prefix) {
   var suffix;
   var sync;
 
   var vanilla = document.getElementById("vanilla").checked;
-  // TODO(jmerm): also special case input being just '('?
   if (!prefix) {
     if (Math.random() < 0.5) {
       sync = true;
