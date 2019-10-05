@@ -21,7 +21,6 @@ function makeRandomRange(x) {
 
 function randomCard(min_toss, max_toss, max_multiplicity) {
   var ret = [];
-  // TODO(sometimes do zeros);
   var multiplicity = randInt(1, max_multiplicity);
   var generate = makeRandomRange(max_toss - min_toss);
   for (var i = 0; i < multiplicity; i++) {

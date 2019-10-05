@@ -131,26 +131,17 @@ function splitOrbits(siteswap, is_sync) {
   return ret;
 }
 
-// applies a toss to pos
-// updates the height of the toss
-// updates whether the next throw is lhs
-function applyToss(orbit, index, pos, is_sync) {
-  var toss = orbit.toss_seq[index];
-  pos.catch_lhs = (pos.toss_lhs && toss % 2 === 0) ||
-                  (!pos.toss_lhs && toss % 2 === 1);
-
-  // sync odd numbers represent crossing evens.
-  if (toss % 2 === 1) {
-    if (is_sync) {
-      if (pos.toss_lhs) {
-        toss -= 1;
-      } else {
-        toss += 1;
-      }
+// Helper to get around the confusing way we represent sync siteswaps.
+// in sync, odd numbers are crossing with even height.
+function nextToss(raw_value, toss_lhs, is_sync) {
+  if (raw_value % 2 === 1 && is_sync) {
+    if (toss_lhs) {
+      return raw_value - 1;
+    } else {
+      return raw_value + 1;
     }
-    pos.toss_lhs = !pos.toss_lhs;
   }
-  pos.toss = toss;
+  return raw_value;
 }
 
 // Returns what's happening in that orbit at that time.
@@ -163,27 +154,27 @@ function Pos(orbit, time, is_sync) {
   var ret = {};
   ret.time = time;
   ret.toss_lhs = orbit.start_lhs;
+  ret.toss = nextToss(orbit.toss_seq[0], ret.toss_lhs, is_sync);
 
   // Makes sure time doesn't go negative
   ret.time -= orbit.offset;
   ret.time = mod(ret.time, 2 * arraysum(orbit.toss_seq));
 
-  // figure out which toss of the toss seq we are on
-  // TODO(jmerm): the loop invariant here is weird and complicated. Maybe change
-  // the semantics of toss_lhs or something so we can remove the cleanup after
-  // the loop.
+  // Figure out which toss of the toss seq we are on by finding the first
+  // throw we wouldn't have had time to finish.
   var toss_index = 0;
-  while (ret.time >= 0) {
-    applyToss(orbit, toss_index, ret, is_sync);
+  while (ret.time >= ret.toss) {
     ret.time -= ret.toss;
+    if (orbit.toss_seq[toss_index] % 2 === 1) {
+      ret.toss_lhs = !ret.toss_lhs;
+    }
     toss_index = (toss_index + 1) % orbit.toss_seq.length;
+    ret.toss = nextToss(orbit.toss_seq[toss_index], ret.toss_lhs, is_sync);
   }
-  // When we exit the loop, we've found the point that would be too far so we
-  // need to undo changes from the loop a tiny bit.
-  ret.time += ret.toss;
-  if (orbit.toss_seq[mod(toss_index - 1, orbit.toss_seq.length)] % 2 === 1) {
-    ret.toss_lhs = !ret.toss_lhs;
-  }
+
+  var next_toss_crosses = orbit.toss_seq[toss_index] % 2 === 1;
+  ret.catch_lhs = (ret.toss_lhs && !next_toss_crosses) ||
+                  (!ret.toss_lhs && next_toss_crosses);
   
   return ret;
 }
