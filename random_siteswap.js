@@ -20,16 +20,31 @@ function makeRandomRange(x) {
 }
 
 function randomCard(min_toss, max_toss, max_multiplicity) {
+  if ((Math.random() < 0.05)) {
+    return [0];
+  }
   var ret = [];
-  var multiplicity = randInt(1, max_multiplicity);
+
+  // Pick actual multiplicty by giving [0,0.5] to 1, [0.5,0.75] to 2 ...
+  // up to max multiplicity. Unused range goes to 1.
+  var multiplicity = 0;
+  var increaser = Math.random();
+  for (let i = 0; i < max_multiplicity; i++) {
+    if (increaser < 1) {
+      increaser *= 2;
+      multiplicity += 1;
+    }
+  }
+  if (increaser < 1) {
+    multiplicity = 1;
+  }
+
+  // pick that many tosses and sort descending
   var generate = makeRandomRange(max_toss - min_toss);
   for (var i = 0; i < multiplicity; i++) {
     ret.push(generate() + min_toss);
   }
   ret.sort(function(a, b){return b-a});
-  if (!ret || (Math.random() < 0.05)) {
-    ret = [0];
-  }
   return ret;
 }
 
@@ -76,7 +91,7 @@ function randomAsync(vanilla) {
   } else {
     len = randInt(4,9);
     max = randInt(5,9);
-    max_multiplicity = randInt(2,4);
+    max_multiplicity = randInt(2,6);
   }
   for (var i = 0; i < len; i++) {
     cards.push(randomCard(1, 10, max_multiplicity));
@@ -94,7 +109,7 @@ function randomSync(vanilla) {
   } else {
     len = randInt(2,4);
     max = randInt(5,9);
-    max_multiplicity = randInt(2,4);
+    max_multiplicity = randInt(2,6);
   }
   for (var i = 0; i < len; i++) {
     var right_card = randomCard(1, 10, max_multiplicity);
