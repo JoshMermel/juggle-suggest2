@@ -59,6 +59,7 @@ or write my own.
  - UI
    - Make suggestion stay visible when user presses ctrl, downarrow, ...
    - Add screenshots to readme
+   - Add copy button for prefix + suggestion
  - Animation
    - Horizontally scale when translating coordinate systems
    - Draw stacked multiplexes better
