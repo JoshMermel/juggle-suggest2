@@ -70,6 +70,7 @@ Eventually I'll have this once I convice James to explain how to integrat it.
    - Horizontally scale when translating coordinate systems
    - Add a stick figure
    - Write some tests
+   - Support styles like Mills
  - Randomization
    - See if there's a way to avoid patterns where one throw is much higher than
      others in a way that makes it boring
