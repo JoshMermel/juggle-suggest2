@@ -51,9 +51,29 @@ There is also a speed slider for making the animator run faster or slower.
 
 ## Orbits Visualization
 
-Eventually I'll have this once I convice James to explain how to integrat it.
+Eventually I'll have this once I convince James to explain how to integrate it
+or write my own.
 
-## Unordered todos
+## TODOs for V2
+
+ - UI
+   - Make suggestion stay visible when user presses ctrl, downarrow, ...
+   - Add screenshots to readme
+ - Animation
+   - Horizontally scale when translating coordinate systems
+   - Draw stacked multiplexes better
+ - Randomization
+   - See if there's a way to avoid patterns where one throw is much higher than
+     others in a way that makes it boring
+   - Pass around and use a seed for randomization that isn't reset on certain
+     actions (i.e. multiplex toggle)
+   - Simplify how I decide the multiplicity of each throw
+ - New features
+   - Integrate orbits visualizer like jbuckland.com/juggle-graph
+ - Software Engineering/Misc
+   - Read input from URL
+ 
+## TODOs for the nebulous future
 
  - Suggestion
    - Handle cases when all suggestions contains a value higher than z i.e
@@ -63,28 +83,16 @@ Eventually I'll have this once I convice James to explain how to integrat it.
    - Improve UI when user input is valid
    - Make suggestion stay visible when user presses ctrl, downarrow, ...
    - Better error messages explaining why a pattern is invalid
-   - Add screenshots to readme
  - Animation
-   - Make dwell look more better for low throws in a way that works with
-     squeezes
-   - Horizontally scale when translating coordinate systems
    - Add a stick figure
    - Write some tests
    - Support styles like Mills
  - Randomization
-   - See if there's a way to avoid patterns where one throw is much higher than
-     others in a way that makes it boring
-   - Pass around and use a seed for randomization that isn't reset on certain
-     actions (i.e. multiplex toggle)
-   - Simplify how I decide the multiplicity of each throw
    - Write some tests
  - New features
-   - Integrate orbits visualizer like jbuckland.com/juggle-graph
-   - Show transition to/from ground state for suggested patern
+   - Show transition to/from ground state for suggested pattern
  - Software Engineering/Misc
-   - Read input from URL
    - Refactor what's in each file and get js out of .html files. This might be a
      rewrite in typescript or it might starting to use closure to manage
      dependencies and merge/minify
    - It'd be cool to cut dependencies like jquery that I'm not using very much
- 
