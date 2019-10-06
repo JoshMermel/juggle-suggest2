@@ -319,12 +319,10 @@ function recolorRandomly() {
 }
 
 function recolorByOrbit() {
-  var orbit_to_color = {};
+  var hues = shuffle(["red", "orange", "yellow", "green", "blue", "purple", "pink", "monochrome"]);
+
   for (let ball of balls) {
-    if (!(ball.orbit.id in orbit_to_color)) {
-      orbit_to_color[ball.orbit.id] = randomColor({luminosity: 'dark'});
-    }
-    ball.color = orbit_to_color[ball.orbit.id];
+    ball.color = randomColor({luminosity: 'dark', hue: hues[ball.orbit.id % hues.length]});
   }
 }
 
