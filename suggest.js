@@ -874,7 +874,14 @@ function initSuggestbox() {
     var txt = suggestbox.getText();
     Update(txt);
   });
-  updateSuggestion("");
+  var urlParams = new URLSearchParams(window.location.search);
+  var prefix = urlParams.getAll('prefix')
+  if (prefix.length > 0) {
+    suggestbox.setText(prefix[0]);
+    updateSuggestion(prefix[0]);
+  } else {
+    updateSuggestion("");
+  }
 }
 
 // Export for tests
