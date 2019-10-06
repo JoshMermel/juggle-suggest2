@@ -43,7 +43,6 @@ function mod(n, m) {
 // For debugging only.
 function printSiteswapAsOrbits(siteswap, is_sync) {
   var orbits = splitOrbits(siteswap, is_sync);
-  console.log(orbits);
   var tmp;
   for (let orbit of orbits) {
     tmp = '';
@@ -84,13 +83,15 @@ function firstNonempty(siteswap) {
 
 // Constructs an Orbit object.
 // Simplifies so offset is less than last throw.
-function Orbit(toss_seq, offset, is_sync) {
+function Orbit(toss_seq, landing_seq, offset, is_sync) {
   while (offset > toss_seq[toss_seq.length - 1]) {
     offset -= toss_seq[toss_seq.length - 1];
     toss_seq.unshift(toss_seq.pop());
+    landing_seq.unshift(landing_seq.pop());
   }
 
   this.toss_seq = toss_seq;
+  this.landing_seq = landing_seq;
   this.offset = offset;
   this.start_lhs = true;
 
@@ -102,6 +103,23 @@ function Orbit(toss_seq, offset, is_sync) {
   }
 }
 
+// returns an array as long as the siteswap
+// at each index will be the height of the highest throw that lands on that
+// beat.
+function maxLandings(siteswap, is_sync) {
+  let ret = [];
+  for (let multi of siteswap) {
+    ret.push([]);
+  }
+  for (let i = 0; i < siteswap.length; i++) {
+    for (let j = 0; j < siteswap[i].length; j++) {
+      var dest = (i + siteswap[i][j]) % siteswap.length;
+      ret[dest] = Math.max(ret[dest], nextToss(siteswap[i][j], i % 2 === 0, is_sync));
+    }
+  }
+  return ret;
+}
+
 // Splits a sitswap into a list of Orbits.
 // Each orbit represents a 1 ball siteswap.
 // If all orbits are played on top of each other at the correct offsets, the
@@ -109,22 +127,25 @@ function Orbit(toss_seq, offset, is_sync) {
 // destroys the input.
 function splitOrbits(siteswap, is_sync) {
   var ret = [];
-  var toss_seq, first, steal, newindex;
+  var toss_seq, landing_seq, first, steal, newindex;
+  var max_landings = maxLandings(siteswap, is_sync);
 
   while (firstNonempty(siteswap) != -1) {
     toss_seq = [];
+    landing_seq = [];
     first = firstNonempty(siteswap);
     newindex = first;
 
     do {
       steal = siteswap[newindex].pop();
       toss_seq.push(steal);
+      landing_seq.push(max_landings[newindex]);
       newindex = (newindex + steal) % siteswap.length;
     } while (newindex != first);
 
     var num_balls = arraysum(toss_seq) / siteswap.length;
     for (let i = 0; i < num_balls; i++) {
-      ret.push(new Orbit(Array.from(toss_seq), first, is_sync));
+      ret.push(new Orbit(Array.from(toss_seq), Array.from(landing_seq), first, is_sync));
       first += siteswap.length;
     }
   }
@@ -156,6 +177,7 @@ function Pos(orbit, time, is_sync) {
   ret.time = time;
   ret.toss_lhs = orbit.start_lhs;
   ret.toss = nextToss(orbit.toss_seq[0], ret.toss_lhs, is_sync);
+  ret.max_landing_with = orbit.landing_seq[0];
 
   // Makes sure time doesn't go negative
   ret.time -= orbit.offset;
@@ -173,10 +195,11 @@ function Pos(orbit, time, is_sync) {
     ret.toss = nextToss(orbit.toss_seq[toss_index], ret.toss_lhs, is_sync);
   }
 
+  ret.max_landing_with = orbit.landing_seq[mod(toss_index+1, orbit.toss_seq.length)];
   var next_toss_crosses = orbit.toss_seq[toss_index] % 2 === 1;
   ret.catch_lhs = (ret.toss_lhs && !next_toss_crosses) ||
                   (!ret.toss_lhs && next_toss_crosses);
-  
+
   return ret;
 }
 
@@ -230,8 +253,8 @@ function Ball(orbit, is_sync) {
       source_x = catch_x[pos.catch_lhs];
       dest_x = throw_x[pos.catch_lhs];
       // make dwell smaller for low throws.
-      //peak_y = -1 * Math.min(dwell_distance, dwell_distance * pos.toss / 10);
-      peak_y = -1 * dwell_distance;
+      peak_y = -1 * Math.min(dwell_distance, dwell_distance * pos.max_landing_with / 10);
+      // peak_y = -1 * dwell_distance;
 
       peak_x = (source_x + dest_x) / 2;
       this.x = source_x + ((dest_x - source_x) * progress / duration);
