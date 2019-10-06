@@ -829,7 +829,8 @@ function updateSuggestion(prefix) {
   suggestbox.repaint();
   $('#error').slideUp();
 
-  setSiteswap(parseSiteswap(prefix + suffix, sync).siteswap, sync);
+  var color_by_orbit = document.getElementById("by_orbit").checked;
+  setSiteswap(parseSiteswap(prefix + suffix, sync).siteswap, color_by_orbit, sync);
 
   return;
 }
@@ -861,6 +862,13 @@ function initSuggestbox() {
   $('input[name=options]').change(function(){
     var txt = suggestbox.getText();
     Update(txt);
+  });
+  $('input[name=colors]').click(function(){
+    if (document.getElementById("by_orbit").checked) {
+      recolorByOrbit();
+    } else {
+      recolorRandomly();
+    }
   });
   document.getElementById("randomize").onclick = (function(){
     var txt = suggestbox.getText();

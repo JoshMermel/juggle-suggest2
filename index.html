@@ -40,6 +40,16 @@
           <button type="button" class="btn btn-secondary" id="randomize">Randomize</button>
 
           <hr/>
+
+          <div class="btn-group" data-toggle="buttons" id="color-toggle">
+            <label class="btn btn-primary">
+              <input type="radio" name="colors" id="by_orbit" autocomplete="off"> Color by orbit </label>
+            <label class="btn btn-primary active">
+              <input type="radio" name="colors" id="random" autocomplete="off" checked="checked"> Random Colors </label>
+          </div>
+
+          <hr/>
+
           <span> Animation speed </span>
           <input id="animation_speed" type="text" data-slider-min="1" data-slider-max="20" data-slider-step="1" data-slider-value="3"/>
           <hr/>

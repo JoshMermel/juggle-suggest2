@@ -83,7 +83,8 @@ function firstNonempty(siteswap) {
 
 // Constructs an Orbit object.
 // Simplifies so offset is less than last throw.
-function Orbit(toss_seq, landing_seq, offset, is_sync) {
+function Orbit(toss_seq, landing_seq, offset, id, is_sync) {
+  this.id = id;
   while (offset > toss_seq[toss_seq.length - 1]) {
     offset -= toss_seq[toss_seq.length - 1];
     toss_seq.unshift(toss_seq.pop());
@@ -129,6 +130,7 @@ function splitOrbits(siteswap, is_sync) {
   var ret = [];
   var toss_seq, landing_seq, first, steal, newindex;
   var max_landings = maxLandings(siteswap, is_sync);
+  var id = 0;
 
   while (firstNonempty(siteswap) != -1) {
     toss_seq = [];
@@ -145,9 +147,10 @@ function splitOrbits(siteswap, is_sync) {
 
     var num_balls = arraysum(toss_seq) / siteswap.length;
     for (let i = 0; i < num_balls; i++) {
-      ret.push(new Orbit(Array.from(toss_seq), Array.from(landing_seq), first, is_sync));
+      ret.push(new Orbit(Array.from(toss_seq), Array.from(landing_seq), first, id, is_sync));
       first += siteswap.length;
     }
+    id += 1;
   }
 
   return ret;
@@ -222,7 +225,8 @@ function Ball(orbit, is_sync) {
   this.is_sync = is_sync;
   this.x = 0;
   this.y = 0;
-  this.color = randomColor({luminosity: 'dark'});
+  // default to be set later.
+  this.color = 0;
   this.updatePosition = function(keyframe_count) {
     // get position
     var pos = Pos(this.orbit, keyframe_count, this.is_sync);
@@ -292,7 +296,7 @@ function StartAnimation() {
 
 // Updates the animation to start animating new siteswap.
 // TODO(jmerm): is updating maxthrow before balls a race?
-function setSiteswap(siteswap, is_sync) {
+function setSiteswap(siteswap, color_by_orbit, is_sync) {
   // TODO(jmerm): validate input here?
   max_throw = maxThrow(siteswap, is_sync);
   var new_balls = [];
@@ -301,6 +305,27 @@ function setSiteswap(siteswap, is_sync) {
     new_balls.push(new Ball(orbit, is_sync));
   }
   balls = new_balls;
+  if (color_by_orbit) {
+    recolorByOrbit();
+  } else {
+    recolorRandomly();
+  }
+}
+
+function recolorRandomly() {
+  for (let ball of balls) {
+    ball.color = randomColor({luminosity: 'dark'});
+  }
+}
+
+function recolorByOrbit() {
+  var orbit_to_color = {};
+  for (let ball of balls) {
+    if (!(ball.orbit.id in orbit_to_color)) {
+      orbit_to_color[ball.orbit.id] = randomColor({luminosity: 'dark'});
+    }
+    ball.color = orbit_to_color[ball.orbit.id];
+  }
 }
 
 // Draws balls to the canvas when time = timestamp.
