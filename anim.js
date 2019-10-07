@@ -293,8 +293,8 @@ function Ball(orbit, is_sync) {
     // if max height is small, don't bother scaling because it
     // makes things look stretched out
     var pattern_height = max_height + radius + radius + dwell_distance;
-    if (pattern_height < (canvas_height / 8)) {
-      render_y = canvas_height - max_height - radius - 8 * (this.y + dwell_distance);
+    if (pattern_height < (canvas_height / 10)) {
+      render_y = canvas_height - max_height - radius - 10 * (this.y + dwell_distance);
     } else {
       render_y = (max_height + radius - this.y) * canvas_height / pattern_height;
     }
