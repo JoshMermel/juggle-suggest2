@@ -83,16 +83,18 @@ function firstNonempty(siteswap) {
 
 // Constructs an Orbit object.
 // Simplifies so offset is less than last throw.
-function Orbit(toss_seq, landing_seq, offset, id, is_sync) {
+function Orbit(toss_seq, landing_seq, hold_seq, offset, id, is_sync) {
   this.id = id;
   while (offset > toss_seq[toss_seq.length - 1]) {
     offset -= toss_seq[toss_seq.length - 1];
     toss_seq.unshift(toss_seq.pop());
     landing_seq.unshift(landing_seq.pop());
+    hold_seq.unshift(hold_seq.pop());
   }
 
   this.toss_seq = toss_seq;
   this.landing_seq = landing_seq;
+  this.hold_seq = hold_seq;
   this.offset = offset;
   this.start_lhs = true;
 
@@ -121,25 +123,40 @@ function maxLandings(siteswap, is_sync) {
   return ret;
 }
 
+var max_hold = 0.4;
+
 // Splits a sitswap into a list of Orbits.
 // Each orbit represents a 1 ball siteswap.
 // If all orbits are played on top of each other at the correct offsets, the
 // result will look like the original siteswap.
 // destroys the input.
 function splitOrbits(siteswap, is_sync) {
+  var copy = [];
+  for (let tosses of siteswap) {
+    copy.push(Array.from(tosses));
+  }
+
   var ret = [];
-  var toss_seq, landing_seq, first, steal, newindex;
+  // landing seq is a parallel array holding the hightest throw that will be
+  // caught on the beat that toss_seq[i] is caught.
+  // hold_seq is a num saying how long to hold a ball between catch and dwell 
+  var toss_seq, landing_seq, hold_seq, first, steal, newindex;
   var max_landings = maxLandings(siteswap, is_sync);
   var id = 0;
 
   while (firstNonempty(siteswap) != -1) {
     toss_seq = [];
     landing_seq = [];
+    hold_seq = [];
     first = firstNonempty(siteswap);
     newindex = first;
 
     do {
       steal = siteswap[newindex].pop();
+      var stacked_size = copy[newindex].filter(c => c === steal).length;
+      var stacked_remaining = siteswap[newindex].filter(c => c === steal).length;
+      hold_seq.push(max_hold * stacked_remaining / stacked_size)
+      // push a number to hold_seq.
       toss_seq.push(steal);
       landing_seq.push(max_landings[newindex]);
       newindex = (newindex + steal) % siteswap.length;
@@ -147,7 +164,7 @@ function splitOrbits(siteswap, is_sync) {
 
     var num_balls = arraysum(toss_seq) / siteswap.length;
     for (let i = 0; i < num_balls; i++) {
-      ret.push(new Orbit(Array.from(toss_seq), Array.from(landing_seq), first, id, is_sync));
+      ret.push(new Orbit(Array.from(toss_seq), Array.from(landing_seq), Array.from(hold_seq), first, id, is_sync));
       first += siteswap.length;
     }
     id += 1;
@@ -180,7 +197,6 @@ function Pos(orbit, time, is_sync) {
   ret.time = time;
   ret.toss_lhs = orbit.start_lhs;
   ret.toss = nextToss(orbit.toss_seq[0], ret.toss_lhs, is_sync);
-  ret.max_landing_with = orbit.landing_seq[0];
 
   // Makes sure time doesn't go negative
   ret.time -= orbit.offset;
@@ -199,6 +215,7 @@ function Pos(orbit, time, is_sync) {
   }
 
   ret.max_landing_with = orbit.landing_seq[mod(toss_index+1, orbit.toss_seq.length)];
+  ret.hold = orbit.hold_seq[toss_index];
   var next_toss_crosses = orbit.toss_seq[toss_index] % 2 === 1;
   ret.catch_lhs = (ret.toss_lhs && !next_toss_crosses) ||
                   (!ret.toss_lhs && next_toss_crosses);
@@ -238,9 +255,9 @@ function Ball(orbit, is_sync) {
     var duration;
 
     // figure out if we're in the throw or the dwell
-    if (pos.time + dwell < pos.toss) {
+    if (pos.time + pos.hold + dwell < pos.toss) {
       // doing a throw
-      duration = pos.toss - dwell;
+      duration = pos.toss - dwell - pos.hold;
       progress = pos.time;
       source_x = throw_x[pos.toss_lhs];
       dest_x = catch_x[pos.catch_lhs];
@@ -250,6 +267,9 @@ function Ball(orbit, is_sync) {
       this.x = source_x + ((dest_x - source_x) * progress / duration);
       this.y = peak_y * ((this.x-source_x)*(this.x-dest_x)) /
         ((peak_x-source_x)*(peak_x-dest_x));
+    } else if (pos.time + dwell < pos.toss) {
+      this.x = catch_x[pos.catch_lhs];
+      this.y = 0;
     } else {
       // do a dwell from catch to throw
       duration = dwell;
@@ -258,7 +278,6 @@ function Ball(orbit, is_sync) {
       dest_x = throw_x[pos.catch_lhs];
       // make dwell smaller for low throws.
       peak_y = -1 * Math.min(dwell_distance, dwell_distance * pos.max_landing_with / 10);
-      // peak_y = -1 * dwell_distance;
 
       peak_x = (source_x + dest_x) / 2;
       this.x = source_x + ((dest_x - source_x) * progress / duration);
