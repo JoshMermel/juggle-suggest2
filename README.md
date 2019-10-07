@@ -60,9 +60,6 @@ or write my own.
    - Make suggestion stay visible when user presses ctrl, downarrow, ...
    - Add screenshots to readme
    - Add copy button for prefix + suggestion
- - Animation
-   - Horizontally scale when translating coordinate systems
-   - Draw stacked multiplexes better
  - Randomization
    - See if there's a way to avoid patterns where one throw is much higher than
      others in a way that makes it boring
@@ -71,8 +68,6 @@ or write my own.
    - Simplify how I decide the multiplicity of each throw
  - New features
    - Integrate orbits visualizer like jbuckland.com/juggle-graph
- - Software Engineering/Misc
-   - Read input from URL
  
 ## TODOs for the nebulous future
 
