@@ -288,7 +288,7 @@ function Ball(orbit, is_sync) {
   this.drawSelf = function(ctx, max_height) {
     var canvas_width = ctx.canvas.clientWidth;
     var canvas_height = ctx.canvas.clientHeight;
-    var render_x = (this.x + (canvas_width / 2)) * canvas_width / 150;
+    var render_x = (this.x * canvas_width / 200) + (canvas_width / 2);
     var render_y = 0;
     // if max height is small, don't bother scaling because it
     // makes things look stretched out
