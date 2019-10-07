@@ -51,7 +51,7 @@
           <hr/>
 
           <span> Animation speed </span>
-          <input id="animation_speed" type="text" data-slider-min="1" data-slider-max="20" data-slider-step="1" data-slider-value="3"/>
+          <input id="animation_speed" type="text" data-slider-min="1" data-slider-max="40" data-slider-step="1" data-slider-value="3"/>
           <hr/>
           <div>
             Orbit visualizations not done, check out
@@ -73,9 +73,9 @@
     <script type="text/javascript">
     window.onload = function () {
       initSuggestbox();
-        $("#animation_speed").slider({value: 5});
+        $("#animation_speed").slider({value: 10});
         $("#animation_speed").on("change", function(slideEvt) {
-         pace = slideEvt.value.newValue / 80;
+         pace = slideEvt.value.newValue / 160;
         });
         StartAnimation();
 

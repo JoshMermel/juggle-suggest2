@@ -235,7 +235,7 @@ var catch_x = {true: -75, false : 75};
 var radius = 10;
 var dwell = 0.5;
 var dwell_distance = 4;
-var pace = 0.0625;
+var pace = 0.03125;
 
 function Ball(orbit, is_sync) {
   this.orbit = orbit;
