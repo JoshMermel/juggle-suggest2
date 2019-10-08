@@ -72,7 +72,6 @@ or write my own.
    - Have so way for users to select the length they want.
  - UI
    - Improve UI when user input is valid
-   - Make suggestion stay visible when user presses ctrl, downarrow, ...
    - Better error messages explaining why a pattern is invalid
  - Animation
    - Add a stick figure
