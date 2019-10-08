@@ -848,11 +848,7 @@ function initSuggestbox() {
     updateSuggestion(txt);
   }
   suggestbox.onChange = Update;
-
-  // TODO(understand this)
-  setTimeout(function() {
-    suggestbox.input.focus();
-  },0);
+  suggestbox.input.focus();
 
   // multiplex/vanilla selector
   // Also style selector
