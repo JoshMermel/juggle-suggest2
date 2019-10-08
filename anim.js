@@ -332,16 +332,24 @@ function setSiteswap(siteswap, color_by_orbit, is_sync) {
 }
 
 function recolorRandomly() {
-  for (let ball of balls) {
-    ball.color = randomColor({luminosity: 'dark'});
+  var palette = new DistinctColors({count: balls.length, lightMin: 50});
+  for (let i = 0; i < balls.length; i++) {
+    balls[i].color = palette[i];
   }
 }
 
-function recolorByOrbit() {
-  var hues = shuffle(["red", "orange", "yellow", "green", "blue", "purple", "pink", "monochrome"]);
-
+function numOrbits() {
+  var ret = 0;
   for (let ball of balls) {
-    ball.color = randomColor({luminosity: 'dark', hue: hues[ball.orbit.id % hues.length]});
+    ret = Math.max(ball.orbit.id, ret);
+  }
+  return ret + 1;
+}
+
+function recolorByOrbit() {
+  var palette = new DistinctColors({count: numOrbits(), lightMin: 50 });
+  for (let ball of balls) {
+    ball.color = palette[ball.orbit.id];
   }
 }
 
