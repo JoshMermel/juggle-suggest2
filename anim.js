@@ -348,7 +348,7 @@ var palette=[ "#000000", "#1CE6FF", "#FF34FF", "#FF4A46", "#008941", "#006FA6",
 function recolorRandomly() {
   let local_palette = shuffle(palette);
   for (let i = 0; i < balls.length; i++) {
-      balls[i].color = local_palette[i];
+      balls[i].color = local_palette[i % local_palette.length];
   }
 }
 
@@ -363,7 +363,7 @@ function numOrbits() {
 function recolorByOrbit() {
   let local_palette = shuffle(palette);
   for (let ball of balls) {
-    ball.color = palette[ball.orbit.id];
+    ball.color = palette[ball.orbit.id % local_palette.length];
   }
 }
 
