@@ -57,7 +57,6 @@ or write my own.
 ## TODOs for V2
 
  - UI
-   - Make suggestion stay visible when user presses ctrl, downarrow, ...
    - Add screenshots to readme
    - Add copy button for prefix + suggestion
  - Randomization
