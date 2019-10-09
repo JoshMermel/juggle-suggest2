@@ -58,7 +58,6 @@ or write my own.
 
  - UI
    - Add screenshots to readme
-   - Add copy button for prefix + suggestion
  - Randomization
    - Simplify how I decide the multiplicity of each throw
  - New features

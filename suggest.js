@@ -813,7 +813,7 @@ const copyToClipboard = str => {
     document.getSelection().addRange(selected);
   }
   var button = document.getElementById("copy");
-  button.innerHTML = "Copied: " + el.value;
+  button.innerHTML = "Copied Successfully";
 };
 
 function printSiteswap(list, is_sync) {
