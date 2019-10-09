@@ -132,10 +132,22 @@ function randomSiteswap(vanilla, is_sync) {
   }
   for (var i = 0; i < ret.length; i++) {
     for (var j = 0; j < ret[i].length; j++) {
-      while (ret[i][j] > 15) {
+      while (ret[i][j] > 15 && ret[i][j] > ret.length + 1) {
         ret[i][j] -= ret.length;
       }
     }
   }
   return ret;
 }
+
+for (let run = 0; run < 10000; run++) {
+  let r = randomSiteswap(true, true);
+  for (var i = 0; i < r.length; i++) {
+    for (var j = 0; j < r[i].length; j++) {
+      if (i % 2 === 0 && r[i][j] === 1) {
+        console.log(r);
+      }
+    }
+  }
+}
+
