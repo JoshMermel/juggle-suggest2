@@ -774,12 +774,13 @@ function suggest(input, allow_multiplex, is_sync) {
 function suggestWithX(input, allow_multiplex, is_sync) {
   var parsed = parseSiteswap(input + 'x', is_sync);
   if (parsed.error !== undefined || 
-    [ SyncStateEnum.S_FIRST_X,
+    [ SyncStateEnum.S_COMMA,
       SyncStateEnum.S_FIRST_X_OR_BRACE,
-      SyncStateEnum.S_SECOND_X,
+      SyncStateEnum.S_PAREN,
       SyncStateEnum.S_SECOND_X_OR_BRACE 
-    ].indexOf(parsed.parse_state) >= 0) {
+    ].indexOf(parsed.parse_state) < 0) {
     return undefined;
+  } else {
   }
   suffix = suggest(input + 'x', allow_multiplex, is_sync);
   if (suffix.error !== undefined) {
