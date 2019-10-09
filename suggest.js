@@ -790,6 +790,32 @@ function suggestWithX(input, allow_multiplex, is_sync) {
   }
 }
 
+const copyToClipboard = str => {
+  const el = document.createElement('textarea');
+	if (suggestbox.options.length > 0) {
+		el.value = suggestbox.options[0];
+	} else {
+		el.value = suggestbox.getText();
+	}
+  el.setAttribute('readonly', '');
+  el.style.position = 'absolute';
+  el.style.left = '-9999px';
+  document.body.appendChild(el);
+  const selected =
+    document.getSelection().rangeCount > 0
+      ? document.getSelection().getRangeAt(0)
+      : false;
+  el.select();
+  document.execCommand('copy');
+  document.body.removeChild(el);
+  if (selected) {
+    document.getSelection().removeAllRanges();
+    document.getSelection().addRange(selected);
+  }
+  var button = document.getElementById("copy");
+  button.innerHTML = "Copied: " + el.value;
+};
+
 function printSiteswap(list, is_sync) {
   var s = {parse_state: initialState(is_sync), siteswap: []};
   return buildSuffix(s, list, is_sync);
@@ -870,6 +896,11 @@ function initSuggestbox() {
   document.getElementById("randomize").onclick = (function(){
     var txt = suggestbox.getText();
     Update(txt);
+  });
+  document.getElementById("copy").onclick = (copyToClipboard);
+  document.getElementById("copy").onmouseout = (function() {
+    var button = document.getElementById("copy");
+    button.innerHTML = "Copy";
   });
   var urlParams = new URLSearchParams(window.location.search);
   var prefix = urlParams.getAll('prefix')
