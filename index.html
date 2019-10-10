@@ -12,7 +12,7 @@
 <body>
   <div class="container">
     <div class="row">
-      <div class="col-md-6">
+      <div class="col-md-7">
         <h1>Juggle Suggest 2</h1>
         <hr/>
         <div id="input"></div>
@@ -23,13 +23,12 @@
         <div>
           <button type="button" class="btn btn-secondary" id="randomize">Randomize Suffix</button>
           <button type="button" class="btn btn-secondary" id="copy">Copy</button>
-        </div>
-        <hr/>
-        <div class="btn-group" data-toggle="buttons" id="van-multi-toggle">
-          <label class="btn btn-primary">
-            <input type="radio" name="options" id="vanilla" autocomplete="off"> Vanilla suggestions </label>
-          <label class="btn btn-primary active">
-            <input type="radio" name="options" id="multiplex" autocomplete="off" checked="checked"> Multiplex suggestions </label>
+          <div class="btn-group" data-toggle="buttons" id="van-multi-toggle">
+            <label class="btn btn-primary">
+              <input type="radio" name="options" id="vanilla" autocomplete="off"> Vanilla suggestions </label>
+            <label class="btn btn-primary active">
+              <input type="radio" name="options" id="multiplex" autocomplete="off" checked="checked"> Multiplex suggestions </label>
+          </div>
         </div>
         <hr/>
         <div>
@@ -37,7 +36,7 @@
         </div>
       </div>
 
-      <div class="col-md-6 text-center">
+      <div class="col-md-5 text-center">
         <canvas id="canvas" width="350px" height="500px"></canvas>
         <div>
           <span> Animation speed </span>
