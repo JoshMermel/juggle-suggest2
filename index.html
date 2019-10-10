@@ -1,88 +1,88 @@
-<html> <head> 
-
 <!doctype html>
 <html>
-  <head>
-  <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
-  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/7.1.0/bootstrap-slider.min.js"></script>
 
-  <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" />
-  <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/7.1.0/css/bootstrap-slider.min.css" />
+<head>
+    <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/7.1.0/bootstrap-slider.min.js"></script>
 
-  <link rel="stylesheet" type="text/css" href="style.css">
-  </head>
-  <body>
+    <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/7.1.0/css/bootstrap-slider.min.css" />
+
+    <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+
+<body>
     <div class="container">
-      <div class="row">
+        <div class="row">
+            <div class="col-md-6">
+                <h1>Juggle Suggest 2</h1>
+                <div>
+                    Type prefixes of async or sync siteswaps in the input box to see possible suffixes. A project by Josh Mermelstein.
+                </div>
+                <hr/>
+                <div id="input"></div>
+                <hr/>
+                <div class="alert alert-danger" id="error">
+                    <span class='white-text flow-text'> '' </span>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-secondary" id="randomize">Randomize Suffix</button>
+                    <button type="button" class="btn btn-secondary" id="copy">Copy</button>
+                </div>
+                <hr/>
 
-        <div class="col-md-6">
-          <h1>Juggle Suggest 2</h1>
-          <h2>Autocomplete for even more siteswap prefixes</h2>
-          <div>
-            Type prefixes of async or sync siteswaps in the input box to see
-            possible suffixes. A project by Josh Mermelstein.
-          </div>
-          <hr/>
-          <div id="input"></div>
-          <hr/>
-          <div class="alert alert-danger" id="error">
-              <span class='white-text flow-text'> '' </span>
-          </div>
-          <div>
-          <button type="button" class="btn btn-secondary" id="randomize">Randomize Suffix</button>
-          <button type="button" class="btn btn-secondary" id="copy">Copy</button>
-          </div>
-          <hr/>
+                <div class="btn-group" data-toggle="buttons" id="van-multi-toggle">
+                    <label class="btn btn-primary">
+                        <input type="radio" name="options" id="vanilla" autocomplete="off"> Vanilla suggestions </label>
+                    <label class="btn btn-primary active">
+                        <input type="radio" name="options" id="multiplex" autocomplete="off" checked="checked"> Multiplex suggestions </label>
+                </div>
 
-          <div class="btn-group" data-toggle="buttons" id="van-multi-toggle">
-            <label class="btn btn-primary">
-              <input type="radio" name="options" id="vanilla" autocomplete="off"> Vanilla suggestions </label>
-            <label class="btn btn-primary active">
-              <input type="radio" name="options" id="multiplex" autocomplete="off" checked="checked"> Multiplex suggestions </label>
-          </div>
+                <hr/>
 
-          <hr/>
+                <div class="btn-group" data-toggle="buttons" id="color-toggle">
+                    <label class="btn btn-primary">
+                        <input type="radio" name="colors" id="by_orbit" autocomplete="off"> Color by Orbit </label>
+                    <label class="btn btn-primary active">
+                        <input type="radio" name="colors" id="random" autocomplete="off" checked="checked"> Random Colors </label>
+                </div>
 
-          <div class="btn-group" data-toggle="buttons" id="color-toggle">
-            <label class="btn btn-primary">
-              <input type="radio" name="colors" id="by_orbit" autocomplete="off"> Color by Orbit </label>
-            <label class="btn btn-primary active">
-              <input type="radio" name="colors" id="random" autocomplete="off" checked="checked"> Random Colors </label>
-          </div>
+                <hr/>
 
-          <hr/>
+                <div>
+                    Orbit visualizations not done, check out jbuckland.com/juggling-graph in the meantime.
+                </div>
+            </div>
 
-          <span> Animation speed </span>
-          <input id="animation_speed" type="text" data-slider-min="1" data-slider-max="40" data-slider-step="1" data-slider-value="3"/>
-          <hr/>
-          <div>
-            Orbit visualizations not done, check out jbuckland.com/juggling-graph in the meantime. 
-          </div>
-          <hr/>
-          </div>
+            <div id="stage" class="col-md-6">
+                <canvas id="canvas" width="300px" height="550px"></canvas>
+                <div>
+                    <span> Animation speed </span>
+                    <input id="animation_speed" type="text" data-slider-min="1" data-slider-max="40" data-slider-step="1" data-slider-value="10" />
+                </div>
+            </div>
 
-          <div id="stage" class="col-md-6">
-            <canvas id="canvas" width="300px" height="600px"></canvas>
-          </div>
-      </div>
+        </div>
     </div>
 
-    </body>
-    <script src="completely.js"></script>
-    <script src="suggest.js"></script>
-    <script src="anim.js"></script>
-    <script src="random_siteswap.js"></script>
-    <script type="text/javascript">
-    window.onload = function () {
-      initSuggestbox();
-        $("#animation_speed").slider({value: 10});
+</body>
+<script src="completely.js"></script>
+<script src="suggest.js"></script>
+<script src="anim.js"></script>
+<script src="random_siteswap.js"></script>
+<script type="text/javascript">
+    window.onload = function() {
+        initSuggestbox();
+        $("#animation_speed").slider({
+            value: 10
+        });
         $("#animation_speed").on("change", function(slideEvt) {
-         pace = slideEvt.value.newValue / 160;
+            pace = slideEvt.value.newValue / 160;
         });
         StartAnimation();
 
-      // TODO: init orbits visualizer
+        // TODO: init orbits visualizer
     }
-  </script>
-</html>
+</script>
 
+</html>
