@@ -10,11 +10,11 @@ your phone and use it offline.
 The input box is how you can enter siteswaps you want to visualize. It supports
 both async and sync but not mixed sync/async.
 
-### Suggestsions
+### Suggestions
 
 As you type the input box autocompletes possible suffixes for your input. These
 suffixes are random but will always be as short as possible (counting number of
-added throws, not number of chracters).
+added throws, not number of characters).
 
 Before you've entered anything, this box will show a randomly chosen siteswap.
 

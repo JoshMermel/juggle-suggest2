@@ -40,14 +40,6 @@
 
                 <hr/>
 
-                <div class="btn-group" data-toggle="buttons" id="color-toggle">
-                    <label class="btn btn-primary">
-                        <input type="radio" name="colors" id="by_orbit" autocomplete="off"> Color by Orbit </label>
-                    <label class="btn btn-primary active">
-                        <input type="radio" name="colors" id="random" autocomplete="off" checked="checked"> Random Colors </label>
-                </div>
-
-                <hr/>
 
                 <div>
                     Orbit visualizations not done, check out jbuckland.com/juggling-graph in the meantime.
@@ -55,10 +47,19 @@
             </div>
 
             <div id="stage" class="col-md-6">
-                <canvas id="canvas" width="300px" height="550px"></canvas>
+                <canvas id="canvas" width="350px" height="500px"></canvas>
                 <div>
                     <span> Animation speed </span>
                     <input id="animation_speed" type="text" data-slider-min="1" data-slider-max="40" data-slider-step="1" data-slider-value="10" />
+                </div>
+
+                <hr>
+
+                <div class="btn-group" data-toggle="buttons" id="color-toggle">
+                    <label class="btn btn-primary">
+                        <input type="radio" name="colors" id="by_orbit" autocomplete="off"> Color by Orbit </label>
+                    <label class="btn btn-primary active">
+                        <input type="radio" name="colors" id="random" autocomplete="off" checked="checked"> Random Colors </label>
                 </div>
             </div>
 
