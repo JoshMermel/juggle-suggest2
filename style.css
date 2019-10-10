@@ -23,3 +23,12 @@ html, body, .container, .row {
 canvas {
   border:1px solid #444;
 }
+#footer {
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  background-color: red;
+  color: white;
+  text-align: center;
+}
