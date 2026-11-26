@@ -236,13 +236,13 @@ export function solveTwoBoneIK3D(shoulder, target, baseUpperLen, baseForeLen, po
 
 // Computes full stick-figure joint geometry in screen coordinates with a calm,
 // steady torso/head and vertically bouncy, elastic 3D arm IK.
-export function computeJugglerPose(leftHand, rightHand, handLineY, canvasWidth, canvasHeight) {
-  const scale = canvasWidth / 350;
+export function computeJugglerPose(leftHand, rightHand, handLineY, canvasWidth, canvasHeight, zoom = 1) {
+  const scale = (canvasWidth / 350) * zoom;
   const centerX = canvasWidth / 2;
 
   // Proportioned upper body with defined waist, hips, and upper legs descending
   // cleanly to the bottom edge of the frame.
-  const crotchY = Math.min(canvasHeight - 26 * scale, handLineY + 20 * scale);
+  const crotchY = Math.min(canvasHeight - 16 * scale, handLineY + 20 * scale);
   const hipY = crotchY - 14 * scale;
   const waistY = hipY - 22 * scale;
   const shoulderY = waistY - 76 * scale;

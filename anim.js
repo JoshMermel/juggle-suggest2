@@ -10,7 +10,10 @@ import {
 } from './juggler.js';
 import { shuffled } from './utils.js';
 
-const RADIUS = 10;
+const BASE_RADIUS = 10;
+const BASE_PX_PER_Y = 10;
+const MIN_ZOOM = 0.45;
+const MIN_RADIUS = 5;
 
 let pace = 0.03125;
 
@@ -18,17 +21,52 @@ export function setPace(new_pace) {
   pace = new_pace;
 }
 
-// Maps world coordinates (x in [-100, 100], y >= -DWELL_DISTANCE) to canvas pixels.
-export function worldToScreen(wx, wy, canvas_width, canvas_height, max_height) {
-  const x = (wx * canvas_width / 200) + (canvas_width / 2);
-  // If max height is small, avoid over-scaling so low patterns don't look stretched.
-  const pattern_height = max_height + RADIUS + RADIUS + DWELL_DISTANCE;
-  let y;
-  if (pattern_height < (canvas_height / 10)) {
-    y = canvas_height - max_height - RADIUS - 10 * (wy + DWELL_DISTANCE);
-  } else {
-    y = (max_height + RADIUS - wy) * canvas_height / pattern_height;
-  }
+// Computes hybrid camera-zoom + vertical scaling metrics so normal patterns
+// (maxThrow <= 6) stay at 1:1 scale, while very tall patterns (like 'zxy')
+// smoothly zoom out the juggler, horizontal spread, and ball radius down to a
+// readable floor while keeping hand dwell motion proportional to juggler size.
+export function computeSceneMetrics(max_throw_val, canvas_width, canvas_height) {
+  const zoom = max_throw_val <= 6
+    ? 1.0
+    : Math.max(MIN_ZOOM, Math.min(1.0, Math.sqrt(6 / max_throw_val)));
+
+  const radius = Math.max(MIN_RADIUS, BASE_RADIUS * zoom);
+  const jugglerScale = (canvas_width / 350) * zoom;
+  const dwellPxPerY = BASE_PX_PER_Y * zoom;
+
+  const bottomMargin = Math.max(
+    DWELL_DISTANCE * dwellPxPerY + radius + 6,
+    52 * jugglerScale
+  );
+  const handLineY = canvas_height - bottomMargin;
+
+  const peakDuration = Math.max(0, max_throw_val - DWELL);
+  const maxHeight = peakDuration * peakDuration;
+  const topMargin = radius + 10;
+  const availSky = Math.max(40, handLineY - topMargin);
+  const flightPxPerY = (maxHeight > 0 && maxHeight * dwellPxPerY > availSky)
+    ? availSky / maxHeight
+    : dwellPxPerY;
+
+  return {
+    zoom,
+    radius,
+    jugglerScale,
+    handLineY,
+    dwellPxPerY,
+    flightPxPerY,
+    canvasWidth: canvas_width,
+    canvasHeight: canvas_height,
+  };
+}
+
+// Maps world coordinates to canvas pixels using hybrid scene metrics.
+// Balls in flight (wy > 0) use flightPxPerY; hands and balls in dwell/hold
+// use dwellPxPerY so hand scoops never collapse on extreme throws.
+export function worldToScreen(wx, wy, metrics, { useHandScale = false } = {}) {
+  const x = (wx * metrics.canvasWidth * metrics.zoom / 200) + (metrics.canvasWidth / 2);
+  const pxPerY = (useHandScale || wy <= 0) ? metrics.dwellPxPerY : metrics.flightPxPerY;
+  const y = metrics.handLineY - wy * pxPerY;
   return { x, y };
 }
 
@@ -73,18 +111,12 @@ export class Ball {
     this.y = peak_y * 4 * u * (1 - u);
   }
 
-  drawSelf(ctx, canvas_width, canvas_height, max_height) {
-    const { x: render_x, y: render_y } = worldToScreen(
-      this.x,
-      this.y,
-      canvas_width,
-      canvas_height,
-      max_height
-    );
+  drawSelf(ctx, metrics) {
+    const { x: render_x, y: render_y } = worldToScreen(this.x, this.y, metrics);
 
     ctx.fillStyle = this.color;
     ctx.beginPath();
-    ctx.arc(render_x, render_y, RADIUS, 0, 2 * Math.PI);
+    ctx.arc(render_x, render_y, metrics.radius, 0, 2 * Math.PI);
     ctx.fill();
   }
 }
@@ -98,7 +130,7 @@ function drawArm(ctx, arm, scale) {
   ctx.strokeStyle = JUGGLER_STROKE;
 
   // Continuous shoulder -> elbow -> hand path with smooth round join
-  ctx.lineWidth = 3.5 * scale;
+  ctx.lineWidth = Math.max(2.0, 3.5 * scale);
   ctx.beginPath();
   ctx.moveTo(arm.shoulder.x, arm.shoulder.y);
   ctx.lineTo(arm.elbow.x, arm.elbow.y);
@@ -107,26 +139,32 @@ function drawArm(ctx, arm, scale) {
 
   // Hand palm indicator
   ctx.fillStyle = JUGGLER_FILL;
-  ctx.lineWidth = 2.0 * scale;
+  ctx.lineWidth = Math.max(1.4, 2.0 * scale);
   ctx.beginPath();
-  ctx.arc(arm.hand.x, arm.hand.y, 4.5 * scale, 0, 2 * Math.PI);
+  ctx.arc(arm.hand.x, arm.hand.y, Math.max(2.6, 4.5 * scale), 0, 2 * Math.PI);
   ctx.fill();
   ctx.stroke();
 }
 
-function drawJuggler(ctx, keyframe_count, canvas_width, canvas_height, max_height) {
+function drawJuggler(ctx, keyframe_count, metrics) {
   const leftWorld = getHandPosition(hand_schedule.left, hand_schedule.cycleLength, true, keyframe_count);
   const rightWorld = getHandPosition(hand_schedule.right, hand_schedule.cycleLength, false, keyframe_count);
 
-  const leftHand = worldToScreen(leftWorld.x, leftWorld.y, canvas_width, canvas_height, max_height);
-  const rightHand = worldToScreen(rightWorld.x, rightWorld.y, canvas_width, canvas_height, max_height);
-  const handLineY = worldToScreen(0, 0, canvas_width, canvas_height, max_height).y;
+  const leftHand = worldToScreen(leftWorld.x, leftWorld.y, metrics, { useHandScale: true });
+  const rightHand = worldToScreen(rightWorld.x, rightWorld.y, metrics, { useHandScale: true });
 
-  const pose = computeJugglerPose(leftHand, rightHand, handLineY, canvas_width, canvas_height);
+  const pose = computeJugglerPose(
+    leftHand,
+    rightHand,
+    metrics.handLineY,
+    metrics.canvasWidth,
+    metrics.canvasHeight,
+    metrics.zoom
+  );
   const s = pose.scale;
   const cx = pose.collar.x;
   const hipW = pose.rightHip.x - cx;
-  const bottomY = canvas_height + 4;
+  const bottomY = metrics.canvasHeight + 4;
   const innerLegHalfGap = 5 * s;
 
   ctx.save();
@@ -135,7 +173,7 @@ function drawJuggler(ctx, keyframe_count, canvas_width, canvas_height, max_heigh
   ctx.strokeStyle = JUGGLER_STROKE;
 
   // Neck
-  ctx.lineWidth = 3.5 * s;
+  ctx.lineWidth = Math.max(2.0, 3.5 * s);
   ctx.beginPath();
   ctx.moveTo(pose.neckTop.x, pose.neckTop.y);
   ctx.lineTo(pose.collar.x, pose.collar.y + 4 * s);
@@ -143,7 +181,7 @@ function drawJuggler(ctx, keyframe_count, canvas_width, canvas_height, max_heigh
 
   // Torso with natural waist curve, hips, and upper legs splitting at crotch
   ctx.fillStyle = JUGGLER_FILL;
-  ctx.lineWidth = 3.0 * s;
+  ctx.lineWidth = Math.max(1.8, 3.0 * s);
   ctx.beginPath();
   ctx.moveTo(cx - hipW * 1.02, bottomY);
   ctx.lineTo(pose.leftHip.x, pose.leftHip.y);
@@ -194,7 +232,7 @@ function drawJuggler(ctx, keyframe_count, canvas_width, canvas_height, max_heigh
 
   // Head
   ctx.fillStyle = JUGGLER_FILL;
-  ctx.lineWidth = 3.0 * s;
+  ctx.lineWidth = Math.max(1.8, 3.0 * s);
   ctx.beginPath();
   ctx.arc(pose.headCenter.x, pose.headCenter.y, pose.headRadius, 0, 2 * Math.PI);
   ctx.fill();
@@ -315,14 +353,13 @@ function draw(timestamp) {
   keyframe_count += delta * pace / 16;
 
   ctx.clearRect(0, 0, logical_width, logical_height);
-  const peak_duration = Math.max(0, max_throw - DWELL);
-  const max_height = peak_duration * peak_duration;
+  const metrics = computeSceneMetrics(max_throw, logical_width, logical_height);
 
-  drawJuggler(ctx, keyframe_count, logical_width, logical_height, max_height);
+  drawJuggler(ctx, keyframe_count, metrics);
 
   for (const ball of balls) {
     ball.updatePosition(keyframe_count);
-    ball.drawSelf(ctx, logical_width, logical_height, max_height);
+    ball.drawSelf(ctx, metrics);
   }
 
   raf_id = window.requestAnimationFrame(draw);

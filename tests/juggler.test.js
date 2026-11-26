@@ -11,7 +11,7 @@ import {
 } from '../juggler.js';
 import { parseSiteswap } from '../suggest.js';
 import { splitOrbits, Pos } from '../orbits.js';
-import { Ball } from '../anim.js';
+import { Ball, computeSceneMetrics, worldToScreen } from '../anim.js';
 
 describe('solveTwoBoneIK3D', () => {
   it('preserves exact 3D bone lengths in rigid mode and stretches smoothly in elastic mode', () => {
@@ -218,5 +218,35 @@ describe('hand schedules and trajectories', () => {
     assert.deepEqual(active.rightShoulder, throwPose.rightShoulder);
     assert.ok(active.leftArm.elbow.y > throwPose.leftArm.elbow.y + 15, 'Expected left elbow to bounce down on dwell');
     assert.ok(active.rightArm.elbow.y < throwPose.rightArm.elbow.y - 10, 'Expected right elbow to spring up on follow-through');
+  });
+
+  it('scales juggler, balls, and horizontal spread smoothly on tall patterns while preserving dwell motion', () => {
+    const m5 = computeSceneMetrics(5, 350, 600);
+    const m9 = computeSceneMetrics(9, 350, 600);
+    const mz = computeSceneMetrics(35, 350, 600);
+
+    // Normal patterns stay 1:1
+    assert.equal(m5.zoom, 1.0);
+    assert.equal(m5.radius, 10);
+    assert.equal(m5.flightPxPerY, m5.dwellPxPerY);
+
+    // Tall patterns smoothly zoom out without collapsing below readable floor
+    assert.ok(m9.zoom < 1.0 && m9.zoom > 0.7);
+    assert.equal(mz.zoom, 0.45);
+    assert.equal(mz.radius, 5);
+
+    // On zxy (35), flight gravity compresses to fit sky, while hand dwell keeps expressive pixels
+    assert.ok(mz.flightPxPerY < 1.0);
+    assert.ok(mz.dwellPxPerY >= 4.0, `Expected healthy dwell scale on zxy, got ${mz.dwellPxPerY}`);
+
+    // Ball and hand match identically at y = 0 and during dwell (y < 0)
+    const handRelease = worldToScreen(-22, 0, mz, { useHandScale: true });
+    const ballRelease = worldToScreen(-22, 0, mz);
+    assert.deepEqual(handRelease, ballRelease);
+
+    const handDwell = worldToScreen(-43, -4, mz, { useHandScale: true });
+    const ballDwell = worldToScreen(-43, -4, mz);
+    assert.deepEqual(handDwell, ballDwell);
+    assert.ok(handDwell.y - handRelease.y >= 16, 'Expected visible vertical dwell scoop on zxy');
   });
 });
