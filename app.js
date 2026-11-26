@@ -1,16 +1,17 @@
-import { suggestBest, printSiteswap } from './suggest.js';
+import { printSiteswap } from './suggest.js';
+import { suggestUnified, fromLegacySiteswap } from './mhn.js';
 import { randomSiteswap } from './random_siteswap.js';
-import { decomposeOrbits } from './orbits.js';
+import { decomposeMhnOrbits } from './orbits.js';
 import {
   startAnimation,
-  setSiteswap,
+  setMhn,
   recolorByOrbit,
   recolorRandomly,
   setPace,
   getOrbitColors,
 } from './anim.js';
 import { createAutocomplete } from './autocomplete.js';
-import { buildOrbitGraphModel, renderOrbitGraph } from './orbits_graph.js';
+import { buildOrbitGraphModelFromMhn, renderOrbitGraph } from './orbits_graph.js';
 import { createPatternStore } from './storage.js';
 
 const MAX_EXTRA_STEPS = 10;
@@ -20,9 +21,8 @@ let store;
 let copyResetTimer = null;
 
 let currentPattern = '';
-let currentSiteswap = null;
+let currentMhn = null;
 let currentDecomposed = null;
-let currentIsSync = false;
 let extraSuffixSteps = 0;
 
 async function copyToClipboard() {
@@ -87,7 +87,7 @@ function updateStarButton() {
   btn.disabled = !currentPattern;
 }
 
-function updateStepperUI(hasPrefix, addedBeats = 0, hasError = false) {
+function updateStepperUI(hasPrefix, addedBeats = 0, hasError = false, lockedByStar = false) {
   const shorterBtn = document.getElementById('suffix-shorter');
   const longerBtn = document.getElementById('suffix-longer');
   const label = document.getElementById('suffix-label');
@@ -101,18 +101,18 @@ function updateStepperUI(hasPrefix, addedBeats = 0, hasError = false) {
   }
 
   shorterBtn.disabled = extraSuffixSteps <= 0;
-  longerBtn.disabled = hasError || extraSuffixSteps >= MAX_EXTRA_STEPS;
+  longerBtn.disabled = hasError || lockedByStar || extraSuffixSteps >= MAX_EXTRA_STEPS;
   label.textContent = extraSuffixSteps === 0 ? 'Shortest' : `+${extraSuffixSteps} step${extraSuffixSteps === 1 ? '' : 's'}`;
-  label.title = hasError ? '' : `Added ${addedBeats} beat${addedBeats === 1 ? '' : 's'}`;
+  label.title = hasError ? '' : (lockedByStar ? "Pattern ends with '*'" : `Added ${addedBeats} beat${addedBeats === 1 ? '' : 's'}`);
 }
 
 function renderCurrentOrbitGraph() {
   const container = document.getElementById('orbits-graph');
-  if (!currentSiteswap) {
+  if (!currentMhn) {
     container.replaceChildren();
     return;
   }
-  const model = buildOrbitGraphModel(currentSiteswap, currentIsSync, getOrbitColors(), currentDecomposed);
+  const model = buildOrbitGraphModelFromMhn(currentMhn, getOrbitColors(), currentDecomposed);
   renderOrbitGraph(container, model);
 }
 
@@ -163,19 +163,18 @@ function renderStarredList() {
 
 function updateSuggestion(prefix, { rollbackStepsTo = null } = {}) {
   let suffix;
-  let siteswap;
-  let sync;
+  let mhn;
   let addedBeats = 0;
 
   const vanilla = document.getElementById('vanilla').checked;
   if (!prefix) {
     extraSuffixSteps = 0;
-    sync = Math.random() < 0.5;
-    siteswap = randomSiteswap(vanilla, sync);
+    const sync = Math.random() < 0.5;
+    const siteswap = randomSiteswap(vanilla, sync);
     suffix = printSiteswap(siteswap, sync);
+    mhn = fromLegacySiteswap(siteswap, sync);
   } else {
-    sync = prefix[0] === '(';
-    const result = suggestBest(prefix, !vanilla, sync, extraSuffixSteps);
+    const result = suggestUnified(prefix, !vanilla, extraSuffixSteps);
     if (result.error !== undefined) {
       if (rollbackStepsTo !== null) {
         extraSuffixSteps = rollbackStepsTo;
@@ -189,24 +188,23 @@ function updateSuggestion(prefix, { rollbackStepsTo = null } = {}) {
       return;
     }
     suffix = result.suffix;
-    siteswap = result.siteswap;
+    mhn = result.mhn;
     addedBeats = result.addedBeats;
   }
 
   const fullPattern = prefix + suffix;
-  const decomposed = decomposeOrbits(siteswap, sync);
+  const decomposed = decomposeMhnOrbits(mhn);
   currentPattern = fullPattern;
-  currentSiteswap = siteswap;
+  currentMhn = mhn;
   currentDecomposed = decomposed;
-  currentIsSync = sync;
 
   suggestbox.setSuggestion(fullPattern);
   hideError();
-  updateStepperUI(Boolean(prefix), addedBeats, false);
+  updateStepperUI(Boolean(prefix), addedBeats, false, Boolean(mhn.switchRepeat));
   updateStarButton();
 
   const colorByOrbit = document.getElementById('by_orbit').checked;
-  setSiteswap(siteswap, colorByOrbit, sync, decomposed);
+  setMhn(mhn, colorByOrbit, decomposed);
   renderCurrentOrbitGraph();
 }
 

@@ -1,4 +1,5 @@
 import { arraysum, mod } from './utils.js';
+import { LEFT, destHandForThrow, destCellForThrow, effectiveSwitchRepeat } from './mhn.js';
 
 // Returns the highest throw of the pattern.
 export function maxThrow(siteswap, is_sync) {
@@ -145,12 +146,185 @@ export function splitOrbits(siteswap, is_sync) {
   return decomposeOrbits(siteswap, is_sync).orbits;
 }
 
+// Returns the highest throw of an MHN pattern.
+export function maxThrowMhn(mhn) {
+  let max = 0;
+  for (let h = 0; h < 2; h++) {
+    for (let t = 0; t < mhn.period; t++) {
+      for (const thr of mhn.cells[h][t]) {
+        if (thr.value > max) {
+          max = thr.value;
+        }
+      }
+    }
+  }
+  return max;
+}
+
+// Returns a 2D array [2][period] with the highest throw landing on each (hand, beat).
+export function maxLandingsMhn(mhn) {
+  const P = mhn.period;
+  const sr = effectiveSwitchRepeat(mhn);
+  const ret = [new Array(P).fill(0), new Array(P).fill(0)];
+  for (let h = 0; h < 2; h++) {
+    for (let t = 0; t < P; t++) {
+      for (const thr of mhn.cells[h][t]) {
+        if (thr.value === 0) {
+          continue;
+        }
+        const { hand: dh, beat: dt } = destCellForThrow(h, t, thr.value, thr.crosses, P, sr);
+        ret[dh][dt] = Math.max(ret[dh][dt], thr.value);
+      }
+    }
+  }
+  return ret;
+}
+
+// Represents a single 1-ball MHN orbit with explicit per-step hand assignments.
+export class MhnOrbit {
+  constructor(steps, offset, id) {
+    this.isMhn = true;
+    this.id = id;
+    this.steps = steps;
+    this.period = steps.reduce((acc, s) => acc + s.toss, 0);
+    this.offset = mod(offset, this.period);
+  }
+}
+
+// Decomposes an MHN pattern into 1-ball MhnOrbits, orbitSummaries, and
+// throwOrbitIds[hand][beat][throwIdx] without mutating the input.
+export function decomposeMhnOrbits(mhn) {
+  const P = mhn.period;
+  const sr = effectiveSwitchRepeat(mhn);
+  const remaining = [
+    mhn.cells[0].map(beat =>
+      beat.map((thr, origIdx) => ({ thr, origIdx })).filter(e => e.thr.value !== 0)
+    ),
+    mhn.cells[1].map(beat =>
+      beat.map((thr, origIdx) => ({ thr, origIdx })).filter(e => e.thr.value !== 0)
+    ),
+  ];
+  const original = [
+    remaining[0].map(entries => entries.map(e => e.thr)),
+    remaining[1].map(entries => entries.map(e => e.thr)),
+  ];
+  const throwOrbitIds = [
+    mhn.cells[0].map(beat => beat.map(() => -1)),
+    mhn.cells[1].map(beat => beat.map(() => -1)),
+  ];
+
+  const max_landings = maxLandingsMhn(mhn);
+  const orbits = [];
+  const orbitSummaries = [];
+  let id = 0;
+
+  const sameThrow = (a, b) => a.value === b.value && a.crosses === b.crosses;
+
+  const findNextCell = () => {
+    for (let t = 0; t < P; t++) {
+      for (let h = 0; h < 2; h++) {
+        if (remaining[h][t].length > 0) {
+          return { hand: h, beat: t };
+        }
+      }
+    }
+    return null;
+  };
+
+  let start = findNextCell();
+  while (start !== null) {
+    const cycle = [];
+    let curH = start.hand;
+    let curT = start.beat;
+
+    do {
+      if (remaining[curH][curT].length === 0) {
+        break;
+      }
+      const { thr, origIdx } = remaining[curH][curT].pop();
+      throwOrbitIds[curH][curT][origIdx] = id;
+      const stacked_size = original[curH][curT].filter(x => sameThrow(x, thr)).length;
+      const stacked_remaining = remaining[curH][curT].filter(e => sameThrow(e.thr, thr)).length;
+      const hold = MAX_HOLD * stacked_remaining / stacked_size;
+      const next = destCellForThrow(curH, curT, thr.value, thr.crosses, P, sr);
+      cycle.push({
+        hand: curH,
+        beat: curT,
+        thr,
+        hold,
+        landingAtDest: max_landings[next.hand][next.beat],
+      });
+      curH = next.hand;
+      curT = next.beat;
+    } while (curH !== start.hand || curT !== start.beat);
+
+    const cycleSum = cycle.reduce((acc, c) => acc + c.thr.value, 0);
+    const num_balls = Math.round(cycleSum / P);
+
+    orbitSummaries.push({
+      id,
+      balls: num_balls,
+      throws: cycle.map(c => c.thr),
+      cells: cycle.map(c => ({ hand: c.hand, beat: c.beat })),
+    });
+
+    for (let i = 0; i < num_balls; i++) {
+      const startHand = (sr && i % 2 === 1) ? (1 - start.hand) : start.hand;
+      const steps = [];
+      let realHand = startHand;
+      // Walk base cycle once; if real handedness flipped (e.g. odd switch-repeat wraps),
+      // walk a second pass so the orbit closes cleanly on the exact same hand.
+      for (let pass = 0; pass < 2; pass++) {
+        for (const c of cycle) {
+          const nextRealHand = destHandForThrow(realHand, c.thr.value, c.thr.crosses);
+          steps.push({
+            toss: c.thr.value,
+            toss_lhs: realHand === LEFT,
+            catch_lhs: nextRealHand === LEFT,
+            max_landing_with: c.landingAtDest,
+            hold: c.hold,
+          });
+          realHand = nextRealHand;
+        }
+        if (realHand === startHand) {
+          break;
+        }
+      }
+      orbits.push(new MhnOrbit(steps, start.beat + i * P, id));
+    }
+
+    id += 1;
+    start = findNextCell();
+  }
+
+  return { orbits, orbitSummaries, throwOrbitIds };
+}
+
 // Returns what is happening in `orbit` at `time`:
 //  - toss: height/duration of the current throw
 //  - time: time elapsed on that throw (always in [0, toss))
 //  - toss_lhs: whether this throw started on the left hand
 //  - catch_lhs: whether this throw is caught on the left hand
 export function Pos(orbit, time, is_sync) {
+  if (orbit.isMhn) {
+    let t = mod(time - orbit.offset, orbit.period);
+    let idx = 0;
+    const len = orbit.steps.length;
+    while (t >= orbit.steps[idx].toss) {
+      t -= orbit.steps[idx].toss;
+      idx = (idx + 1) % len;
+    }
+    const step = orbit.steps[idx];
+    return {
+      time: t,
+      toss: step.toss,
+      toss_lhs: step.toss_lhs,
+      catch_lhs: step.catch_lhs,
+      max_landing_with: step.max_landing_with,
+      hold: step.hold,
+    };
+  }
+
   let toss_lhs = orbit.start_lhs;
   let toss = nextToss(orbit.toss_seq[0], toss_lhs, is_sync);
 

@@ -744,7 +744,7 @@ function suggestWithX(input, allow_multiplex, is_sync, extra_steps = 0) {
 // Single-parse entry point for the UI: tries `input` and (when syntactically
 // valid in sync mode) `input + 'x'`, returning `{ suffix, siteswap, addedBeats }`
 // or `{ error }`.
-function suggestBest(input, allow_multiplex, is_sync, extra_steps = 0) {
+function suggestBest(input, allow_multiplex, is_sync, extra_steps = 0, allow_append_x = true) {
   const prefix = parseSiteswap(input, is_sync);
   if (prefix.error !== undefined) {
     return { error: prefix.error };
@@ -752,7 +752,7 @@ function suggestBest(input, allow_multiplex, is_sync, extra_steps = 0) {
 
   const primary = suggestFromParsed(prefix, input, allow_multiplex, is_sync, extra_steps);
 
-  if (is_sync && PRE_X_STATES.has(prefix.parse_state)) {
+  if (is_sync && allow_append_x && PRE_X_STATES.has(prefix.parse_state)) {
     const xPrefix = {
       parse_state: prefix.parse_state,
       siteswap: prefix.siteswap.map(beat => beat.slice()),

@@ -1,7 +1,8 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildOrbitGraphModel } from '../orbits_graph.js';
+import { buildOrbitGraphModel, buildOrbitGraphModelFromMhn } from '../orbits_graph.js';
 import { parseSiteswap } from '../suggest.js';
+import { parseMixed } from '../mhn.js';
 
 describe('orbits_graph', () => {
   it('builds forward, backward, and self-loop arcs for 531', () => {
@@ -68,5 +69,27 @@ describe('orbits_graph', () => {
     const model = buildOrbitGraphModel(parseSiteswap('0', false).siteswap, false);
     assert.equal(model.arcs.length, 0);
     assert.equal(model.orbits.length, 0);
+  });
+
+  it('builds MHN orbit graphs for *, !, L/R, and mixed sync/async patterns', () => {
+    // (4,2x)* has tokens (, 4, ,, 2x, ), * and 2 self-looping orbits (4 has 2 balls, 2x has 1 ball)
+    const starModel = buildOrbitGraphModelFromMhn(parseMixed('(4,2x)*'));
+    assert.deepEqual(starModel.tokens.map(t => t.text), ['(', '4', ',', '2x', ')', '*']);
+    assert.equal(starModel.arcs.length, 2);
+    assert.equal(starModel.orbits.length, 2);
+    assert.deepEqual(starModel.arcs.map(a => a.type), ['self', 'self']);
+
+    // (3x,4)!3x has tokens (, 3x, ,, 4, ), !, 3x and 2 orbits ([3x, 3x] and [4])
+    const bangModel = buildOrbitGraphModelFromMhn(parseMixed('(3x,4)!3x'));
+    assert.deepEqual(bangModel.tokens.map(t => t.text), ['(', '3x', ',', '4', ')', '!', '3x']);
+    assert.equal(bangModel.arcs.length, 3);
+    assert.equal(bangModel.orbits.length, 2);
+    assert.deepEqual(bangModel.arcs.map(a => a.type), ['forward', 'self', 'backward']);
+
+    // (3x,2x)!L3 includes the 'L' hand specifier token and valid arcs
+    const handModel = buildOrbitGraphModelFromMhn(parseMixed('(3x,2x)!L3'));
+    assert.ok(handModel.tokens.some(t => t.text === 'L'));
+    assert.ok(handModel.tokens.some(t => t.text === '!'));
+    assert.equal(handModel.arcs.length, 3);
   });
 });

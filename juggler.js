@@ -1,4 +1,5 @@
 import { maxLandings } from './orbits.js';
+import { LEFT, RIGHT, destHandForThrow, expandMhn } from './mhn.js';
 import { mod } from './utils.js';
 
 export const THROW_X = Object.freeze({ true: -22, false: 22 });
@@ -75,6 +76,69 @@ export function buildHandSchedule(siteswap, is_sync) {
   }
 
   return { cycleLength, left, right };
+}
+
+function maxHoldForMhnBeat(throws) {
+  const counts = new Map();
+  let maxCount = 0;
+  for (const thr of throws) {
+    if (thr.value === 0) {
+      continue;
+    }
+    const key = `${thr.value}:${thr.crosses ? 1 : 0}`;
+    const c = (counts.get(key) || 0) + 1;
+    counts.set(key, c);
+    if (c > maxCount) {
+      maxCount = c;
+    }
+  }
+  return maxCount > 1 ? MAX_HOLD * (maxCount - 1) / maxCount : 0;
+}
+
+// Builds a repeating hand schedule directly from an MHN pattern (handles async,
+// sync, '*', '!', 'L'/'R', async 'x', and mixed sync/async transitions).
+export function buildHandScheduleFromMhn(mhn) {
+  if (!mhn || mhn.period === 0) {
+    return { cycleLength: 0, left: [], right: [] };
+  }
+
+  const expanded = expandMhn(mhn);
+  const P = expanded.period;
+  const maxLand = [new Array(P).fill(0), new Array(P).fill(0)];
+
+  for (let h = 0; h < 2; h++) {
+    for (let t = 0; t < P; t++) {
+      for (const thr of expanded.cells[h][t]) {
+        if (thr.value === 0) {
+          continue;
+        }
+        const dh = destHandForThrow(h, thr.value, thr.crosses);
+        const dt = mod(t + thr.value, P);
+        maxLand[dh][dt] = Math.max(maxLand[dh][dt], thr.value);
+      }
+    }
+  }
+
+  const left = [];
+  const right = [];
+  for (let t = 0; t < P; t++) {
+    if (expanded.cells[LEFT][t].some(thr => thr.value > 0)) {
+      left.push({
+        time: t,
+        maxLanding: maxLand[LEFT][t],
+        maxHold: maxHoldForMhnBeat(expanded.cells[LEFT][t]),
+      });
+    }
+    if (expanded.cells[RIGHT][t].some(thr => thr.value > 0)) {
+      right.push({
+        time: t,
+        maxLanding: maxLand[RIGHT][t],
+        maxHold: maxHoldForMhnBeat(expanded.cells[RIGHT][t]),
+      });
+    }
+  }
+
+  return { cycleLength: P, left, right };
 }
 
 // Computes a single hand's world-space (x, y) position at `time`.

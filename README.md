@@ -9,10 +9,14 @@ worker so you can install it to your home screen and use it fully offline.
 
 ### Input Box & Suggestions
 
-Enter async or sync siteswap prefixes (vanilla or multiplex). As you type, the
-input box autocompletes a valid suffix—starting from the shortest possible
-suffix (by number of added throws). Press `Tab`, `Enter`, or `Right Arrow` at
-the end of the input to accept the suggestion.
+Enter async, sync, or mixed sync/async siteswap prefixes (vanilla or multiplex).
+As you type, the input box autocompletes a valid suffix—starting from the shortest
+possible suffix (by number of added throws) and matching your input style: pure
+async stays async, pure sync stays sync, and typing JugglingLab extended notation
+(`!`, `L`/`R`, crossing `x` on async throws, odd throws inside `(a,b)`, or mixing
+sync and async) unlocks mixed completions automatically. Trailing `*` mirror
+shorthand (such as `(4,2x)*`) is also supported when typed. Press `Tab`, `Enter`,
+or `Right Arrow` at the end of the input to accept the suggestion.
 
 - **Vanilla vs. Multiplex**: In vanilla mode, suggestions avoid adding new
   multiplexes (while honoring an open `[` you typed). In multiplex mode,
@@ -55,4 +59,3 @@ The app uses native ES modules with zero build step and zero runtime dependencie
 - Add screenshots to README
 - Show transitions to/from ground state for excited patterns
 - Support styles like Mills Mess
-- Research JugglingLab extended notation (`!`, `*`) for sync/async transitions

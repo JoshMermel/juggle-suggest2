@@ -1,10 +1,11 @@
-import { maxThrow, decomposeOrbits, Pos } from './orbits.js';
+import { maxThrow, maxThrowMhn, decomposeOrbits, decomposeMhnOrbits, Pos } from './orbits.js';
 import {
   THROW_X,
   CATCH_X,
   DWELL,
   DWELL_DISTANCE,
   buildHandSchedule,
+  buildHandScheduleFromMhn,
   getHandPosition,
   computeJugglerPose,
 } from './juggler.js';
@@ -313,6 +314,18 @@ export function setSiteswap(siteswap, color_by_orbit, is_sync, decomposed = null
   hand_schedule = buildHandSchedule(siteswap, is_sync);
   const { orbits } = decomposed || decomposeOrbits(siteswap, is_sync);
   balls = orbits.map(orbit => new Ball(orbit, is_sync));
+  if (color_by_orbit) {
+    recolorByOrbit();
+  } else {
+    recolorRandomly();
+  }
+}
+
+export function setMhn(mhn, color_by_orbit, decomposed = null) {
+  max_throw = maxThrowMhn(mhn);
+  hand_schedule = buildHandScheduleFromMhn(mhn);
+  const { orbits } = decomposed || decomposeMhnOrbits(mhn);
+  balls = orbits.map(orbit => new Ball(orbit, false));
   if (color_by_orbit) {
     recolorByOrbit();
   } else {

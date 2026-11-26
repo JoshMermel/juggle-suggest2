@@ -5,12 +5,14 @@ import {
   CATCH_X,
   DWELL,
   buildHandSchedule,
+  buildHandScheduleFromMhn,
   getHandPosition,
   solveTwoBoneIK3D,
   computeJugglerPose,
 } from '../juggler.js';
 import { parseSiteswap } from '../suggest.js';
-import { splitOrbits, Pos } from '../orbits.js';
+import { splitOrbits, decomposeMhnOrbits, Pos } from '../orbits.js';
+import { parseMixed } from '../mhn.js';
 import { Ball, computeSceneMetrics, worldToScreen } from '../anim.js';
 
 describe('solveTwoBoneIK3D', () => {
@@ -248,5 +250,38 @@ describe('hand schedules and trajectories', () => {
     const ballDwell = worldToScreen(-43, -4, mz);
     assert.deepEqual(handDwell, ballDwell);
     assert.ok(handDwell.y - handRelease.y >= 16, 'Expected visible vertical dwell scoop on zxy');
+  });
+
+  it('locks hands to balls during dwell for MHN mixed patterns (*, !, L/R, 1x, 441)', () => {
+    const patterns = ['531', '441', '(4,2x)*', '(3x,4)!3x', '4x1(4x,3x)*', '(4,5x)(4,1x)!R5x41x', '(3x,2x)!L3', '1x', 'R531*'];
+    for (const pat of patterns) {
+      const mhn = parseMixed(pat);
+      const { orbits } = decomposeMhnOrbits(mhn);
+      const schedule = buildHandScheduleFromMhn(mhn);
+      const balls = orbits.map(o => new Ball(o, false));
+
+      let checkedDwells = 0;
+      for (let step = 0; step < 300; step++) {
+        const t = step * 0.05;
+        for (const ball of balls) {
+          const pos = Pos(ball.orbit, t, false);
+          if (pos.time + DWELL >= pos.toss) {
+            ball.updatePosition(t);
+            const events = pos.catch_lhs ? schedule.left : schedule.right;
+            const hand = getHandPosition(events, schedule.cycleLength, pos.catch_lhs, t);
+            assert.ok(
+              Math.abs(hand.x - ball.x) < 1e-6,
+              `${pat} x mismatch at t=${t.toFixed(2)}: hand=${hand.x}, ball=${ball.x}`
+            );
+            assert.ok(
+              Math.abs(hand.y - ball.y) < 1e-6,
+              `${pat} y mismatch at t=${t.toFixed(2)}: hand=${hand.y}, ball=${ball.y}`
+            );
+            checkedDwells++;
+          }
+        }
+      }
+      assert.ok(checkedDwells > 40, `Expected dwell frames for ${pat}, got ${checkedDwells}`);
+    }
   });
 });

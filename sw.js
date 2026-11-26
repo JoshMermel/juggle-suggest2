@@ -1,10 +1,11 @@
-const CACHE_NAME = 'juggle-suggest2-v1';
+const CACHE_NAME = 'juggle-suggest2-v2';
 const ASSETS = [
   './',
   './index.html',
   './style.css',
   './app.js',
   './suggest.js',
+  './mhn.js',
   './random_siteswap.js',
   './orbits.js',
   './orbits_graph.js',
