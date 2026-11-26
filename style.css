@@ -264,7 +264,7 @@ canvas {
   background: #fff;
 }
 
-/* Right column: Orbits visualizer + Starred & Recent */
+/* Right column: Orbits visualizer, Transitions & Starred */
 .orbits-column {
   display: flex;
   flex-direction: column;
@@ -317,7 +317,37 @@ canvas {
   stroke-width: 2.4;
 }
 
-/* Starred & recent pattern chips */
+/* Ground-state entry/exit transitions */
+.transitions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.transition-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 0.88rem;
+}
+
+.transition-label {
+  color: #555;
+  white-space: nowrap;
+}
+
+.transition-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.9rem;
+  color: #222;
+  background: #f4f4f4;
+  border: 1px solid #ddd;
+  border-radius: 2px;
+  padding: 1px 6px;
+  word-break: break-all;
+}
+
+/* Starred pattern chips */
 .pattern-chips {
   display: flex;
   flex-wrap: wrap;

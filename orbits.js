@@ -180,13 +180,21 @@ export function maxLandingsMhn(mhn) {
   return ret;
 }
 
-// Represents a single 1-ball MHN orbit with explicit per-step hand assignments.
+// Represents a single 1-ball MHN orbit with explicit per-step hand assignments
+// and precomputed cumulative throw end-times for O(log n) Pos() lookup.
 export class MhnOrbit {
   constructor(steps, offset, id) {
     this.isMhn = true;
     this.id = id;
     this.steps = steps;
-    this.period = steps.reduce((acc, s) => acc + s.toss, 0);
+    const cumEnd = new Array(steps.length);
+    let total = 0;
+    for (let i = 0; i < steps.length; i++) {
+      total += steps[i].toss;
+      cumEnd[i] = total;
+    }
+    this.cumEnd = cumEnd;
+    this.period = total;
     this.offset = mod(offset, this.period);
   }
 }
@@ -307,16 +315,22 @@ export function decomposeMhnOrbits(mhn) {
 //  - catch_lhs: whether this throw is caught on the left hand
 export function Pos(orbit, time, is_sync) {
   if (orbit.isMhn) {
-    let t = mod(time - orbit.offset, orbit.period);
-    let idx = 0;
-    const len = orbit.steps.length;
-    while (t >= orbit.steps[idx].toss) {
-      t -= orbit.steps[idx].toss;
-      idx = (idx + 1) % len;
+    const t = mod(time - orbit.offset, orbit.period);
+    const cumEnd = orbit.cumEnd;
+    let lo = 0;
+    let hi = cumEnd.length - 1;
+    while (lo < hi) {
+      const mid = (lo + hi) >>> 1;
+      if (t >= cumEnd[mid]) {
+        lo = mid + 1;
+      } else {
+        hi = mid;
+      }
     }
-    const step = orbit.steps[idx];
+    const step = orbit.steps[lo];
+    const startTime = lo === 0 ? 0 : cumEnd[lo - 1];
     return {
-      time: t,
+      time: t - startTime,
       toss: step.toss,
       toss_lhs: step.toss_lhs,
       catch_lhs: step.catch_lhs,

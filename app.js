@@ -12,6 +12,7 @@ import {
 } from './anim.js';
 import { createAutocomplete } from './autocomplete.js';
 import { buildOrbitGraphModelFromMhn, renderOrbitGraph } from './orbits_graph.js';
+import { computeGroundTransitions } from './transitions.js';
 import { createPatternStore } from './storage.js';
 
 const MAX_EXTRA_STEPS = 10;
@@ -106,6 +107,24 @@ function updateStepperUI(hasPrefix, addedBeats = 0, hasError = false, lockedBySt
   label.title = hasError ? '' : (lockedByStar ? "Pattern ends with '*'" : `Added ${addedBeats} beat${addedBeats === 1 ? '' : 's'}`);
 }
 
+function syncUrlPrefix(prefix) {
+  try {
+    const url = new URL(window.location.href);
+    if (prefix) {
+      url.searchParams.set('prefix', prefix);
+    } else {
+      url.searchParams.delete('prefix');
+    }
+    const next = url.pathname + url.search + url.hash;
+    const cur = window.location.pathname + window.location.search + window.location.hash;
+    if (next !== cur) {
+      window.history.replaceState(null, '', next);
+    }
+  } catch {
+    // Ignore history errors in restricted origins (e.g. sandboxed iframes).
+  }
+}
+
 function renderCurrentOrbitGraph() {
   const container = document.getElementById('orbits-graph');
   if (!currentMhn) {
@@ -114,6 +133,69 @@ function renderCurrentOrbitGraph() {
   }
   const model = buildOrbitGraphModelFromMhn(currentMhn, getOrbitColors(), currentDecomposed);
   renderOrbitGraph(container, model);
+}
+
+function renderCurrentTransitions() {
+  const container = document.getElementById('transitions-body');
+  if (!container) {
+    return;
+  }
+  if (!currentMhn) {
+    container.replaceChildren();
+    return;
+  }
+
+  const info = computeGroundTransitions(currentMhn);
+  container.replaceChildren();
+
+  if (info.balls === 0) {
+    const note = document.createElement('p');
+    note.className = 'muted-note';
+    note.textContent = '0 balls (no transitions).';
+    container.appendChild(note);
+    return;
+  }
+
+  if (info.isGroundState) {
+    const note = document.createElement('p');
+    note.className = 'muted-note';
+    note.append('Ground state (');
+    const code = document.createElement('code');
+    code.className = 'transition-code';
+    code.textContent = info.baseLabel;
+    note.append(code, ')');
+    container.appendChild(note);
+    return;
+  }
+
+  const list = document.createElement('div');
+  list.className = 'transitions-list';
+
+  const makeRow = (labelText, value) => {
+    const row = document.createElement('div');
+    row.className = 'transition-row';
+    const label = document.createElement('span');
+    label.className = 'transition-label';
+    label.textContent = labelText;
+    row.appendChild(label);
+
+    if (value !== null) {
+      const code = document.createElement('code');
+      code.className = 'transition-code';
+      code.textContent = value;
+      row.appendChild(code);
+    } else {
+      const none = document.createElement('span');
+      none.className = 'muted-note';
+      none.textContent = 'requires throws > z';
+      row.appendChild(none);
+    }
+    return row;
+  };
+
+  list.appendChild(makeRow(`From ${info.baseLabel}:`, info.entry));
+  list.appendChild(makeRow(`To ${info.baseLabel}:`, info.exit));
+  container.appendChild(list);
 }
 
 function renderStarredList() {
@@ -162,6 +244,8 @@ function renderStarredList() {
 }
 
 function updateSuggestion(prefix, { rollbackStepsTo = null } = {}) {
+  syncUrlPrefix(prefix);
+
   let suffix;
   let mhn;
   let addedBeats = 0;
@@ -206,6 +290,7 @@ function updateSuggestion(prefix, { rollbackStepsTo = null } = {}) {
   const colorByOrbit = document.getElementById('by_orbit').checked;
   setMhn(mhn, colorByOrbit, decomposed);
   renderCurrentOrbitGraph();
+  renderCurrentTransitions();
 }
 
 function initApp() {

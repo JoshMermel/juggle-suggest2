@@ -1,5 +1,6 @@
 import { decomposeOrbits, decomposeMhnOrbits } from './orbits.js';
 import { asyncToToss, syncToToss } from './suggest.js';
+import { CURATED_PALETTE } from './colors.js';
 import {
   LEFT,
   RIGHT,
@@ -9,10 +10,58 @@ import {
 } from './mhn.js';
 
 // High-contrast default orbit colors (used if no external orbitColorMap is provided).
-const DEFAULT_ORBIT_COLORS = [
-  '#1f77b4', '#d62728', '#2ca02c', '#9467bd', '#ff7f0e',
-  '#17becf', '#e377c2', '#8c564b', '#bcbd22', '#393b79',
-];
+const DEFAULT_ORBIT_COLORS = CURATED_PALETTE;
+
+const MAX_ARC_RY = 76;
+const PAD_Y = 14;
+
+// Shared two-pass arc geometry + SVG path builder for both legacy and MHN orbit graphs.
+function buildArcsLayout(rawEdges, rowHeight) {
+  const pendingArcs = [];
+  let maxTopArc = 16;
+  let maxBottomArc = 16;
+
+  for (const edge of rawEdges) {
+    const { x1, x2, isSelf, orbitId, color, fromBeat, toBeat, label } = edge;
+    if (isSelf && Math.abs(x2 - x1) < 1) {
+      const loopH = 28;
+      maxTopArc = Math.max(maxTopArc, loopH);
+      pendingArcs.push({ type: 'self', x1, x2, loopH, orbitId, color, fromBeat, toBeat, label });
+    } else if (x2 > x1) {
+      const rx = (x2 - x1) / 2;
+      const ry = Math.min(MAX_ARC_RY, Math.max(20, rx * 0.68));
+      maxTopArc = Math.max(maxTopArc, ry);
+      pendingArcs.push({ type: 'forward', x1, x2, rx, ry, orbitId, color, fromBeat, toBeat, label });
+    } else {
+      const rx = (x1 - x2) / 2;
+      const ry = Math.min(MAX_ARC_RY, Math.max(20, rx * 0.68));
+      maxBottomArc = Math.max(maxBottomArc, ry);
+      pendingArcs.push({ type: 'backward', x1, x2, rx, ry, orbitId, color, fromBeat, toBeat, label });
+    }
+  }
+
+  const rowTop = Math.ceil(PAD_Y + maxTopArc);
+  const rowY = rowTop + rowHeight / 2;
+  const rowBottom = rowTop + rowHeight;
+  const totalHeight = Math.ceil(rowBottom + maxBottomArc + PAD_Y);
+
+  const arcs = pendingArcs.map(arc => {
+    let d;
+    if (arc.type === 'self') {
+      const y = rowTop - 2;
+      d = `M ${arc.x1 - 2.5} ${y} C ${arc.x1 - 16} ${y - arc.loopH}, ${arc.x1 + 14} ${y - arc.loopH}, ${arc.x1 + 2.5} ${y - 2}`;
+    } else if (arc.type === 'forward') {
+      const y = rowTop - 2;
+      d = `M ${arc.x1} ${y} A ${arc.rx} ${arc.ry} 0 0 1 ${arc.x2} ${y - 3}`;
+    } else {
+      const y = rowBottom + 2;
+      d = `M ${arc.x1} ${y} A ${arc.rx} ${arc.ry} 0 0 1 ${arc.x2} ${y + 3}`;
+    }
+    return { ...arc, d };
+  });
+
+  return { rowTop, rowY, rowBottom, totalHeight, arcs };
+}
 
 function formatTossLabel(rawToss, beatIndex, is_sync) {
   if (!is_sync) {
@@ -125,91 +174,25 @@ export function buildOrbitGraphModel(siteswap, is_sync, orbitColorMap = null, de
 
   const totalWidth = Math.max(120, cursorX + PAD_X);
 
-  // First pass: compute arc dimensions to determine exact top/bottom vertical margins.
-  const pendingArcs = [];
-  let maxTopArc = 16;
-  let maxBottomArc = 16;
-  const MAX_ARC_RY = 76;
-
+  const rawEdges = [];
   for (const tok of tokens) {
     if (tok.kind !== 'throw' || tok.rawToss === 0) {
       continue;
     }
     const destBeat = (tok.beatIndex + tok.rawToss) % siteswap.length;
-    const x1 = tok.cx;
-    const x2 = landingX[destBeat];
-    const color = colorForOrbit(tok.orbitId);
-
-    if (destBeat === tok.beatIndex && Math.abs(x2 - x1) < 1) {
-      const loopH = 28;
-      maxTopArc = Math.max(maxTopArc, loopH);
-      pendingArcs.push({
-        type: 'self',
-        x1,
-        x2,
-        loopH,
-        orbitId: tok.orbitId,
-        color,
-        fromBeat: tok.beatIndex,
-        toBeat: destBeat,
-        label: tok.text,
-      });
-    } else if (x2 > x1) {
-      const rx = (x2 - x1) / 2;
-      const ry = Math.min(MAX_ARC_RY, Math.max(20, rx * 0.68));
-      maxTopArc = Math.max(maxTopArc, ry);
-      pendingArcs.push({
-        type: 'forward',
-        x1,
-        x2,
-        rx,
-        ry,
-        orbitId: tok.orbitId,
-        color,
-        fromBeat: tok.beatIndex,
-        toBeat: destBeat,
-        label: tok.text,
-      });
-    } else {
-      const rx = (x1 - x2) / 2;
-      const ry = Math.min(MAX_ARC_RY, Math.max(20, rx * 0.68));
-      maxBottomArc = Math.max(maxBottomArc, ry);
-      pendingArcs.push({
-        type: 'backward',
-        x1,
-        x2,
-        rx,
-        ry,
-        orbitId: tok.orbitId,
-        color,
-        fromBeat: tok.beatIndex,
-        toBeat: destBeat,
-        label: tok.text,
-      });
-    }
+    rawEdges.push({
+      x1: tok.cx,
+      x2: landingX[destBeat],
+      isSelf: destBeat === tok.beatIndex,
+      orbitId: tok.orbitId,
+      color: colorForOrbit(tok.orbitId),
+      fromBeat: tok.beatIndex,
+      toBeat: destBeat,
+      label: tok.text,
+    });
   }
 
-  const PAD_Y = 14;
-  const rowTop = Math.ceil(PAD_Y + maxTopArc);
-  const rowY = rowTop + ROW_H / 2;
-  const rowBottom = rowTop + ROW_H;
-  const totalHeight = Math.ceil(rowBottom + maxBottomArc + PAD_Y);
-
-  // Second pass: build SVG path strings using computed rowTop/rowBottom.
-  const arcs = pendingArcs.map(arc => {
-    let d;
-    if (arc.type === 'self') {
-      const y = rowTop - 2;
-      d = `M ${arc.x1 - 2.5} ${y} C ${arc.x1 - 16} ${y - arc.loopH}, ${arc.x1 + 14} ${y - arc.loopH}, ${arc.x1 + 2.5} ${y - 2}`;
-    } else if (arc.type === 'forward') {
-      const y = rowTop - 2;
-      d = `M ${arc.x1} ${y} A ${arc.rx} ${arc.ry} 0 0 1 ${arc.x2} ${y - 3}`;
-    } else {
-      const y = rowBottom + 2;
-      d = `M ${arc.x1} ${y} A ${arc.rx} ${arc.ry} 0 0 1 ${arc.x2} ${y + 3}`;
-    }
-    return { ...arc, d };
-  });
+  const { rowTop, rowY, rowBottom, totalHeight, arcs } = buildArcsLayout(rawEdges, ROW_H);
 
   const orbits = orbitSummaries.map(summary => ({
     id: summary.id,
@@ -356,11 +339,7 @@ export function buildOrbitGraphModelFromMhn(mhn, orbitColorMap = null, decompose
 
   const totalWidth = Math.max(120, cursorX + PAD_X);
 
-  const pendingArcs = [];
-  let maxTopArc = 16;
-  let maxBottomArc = 16;
-  const MAX_ARC_RY = 76;
-
+  const rawEdges = [];
   for (const tok of tokens) {
     if (tok.kind !== 'throw' || tok.value === 0) {
       continue;
@@ -373,82 +352,23 @@ export function buildOrbitGraphModelFromMhn(mhn, orbitColorMap = null, decompose
       mhn.period,
       sr
     );
-    const x1 = tok.cx;
     const x2 = landingX[dh][dt];
     if (x2 === undefined) {
       continue;
     }
-    const color = colorForOrbit(tok.orbitId);
-
-    if (dh === tok.hand && dt === tok.beatIndex && Math.abs(x2 - x1) < 1) {
-      const loopH = 28;
-      maxTopArc = Math.max(maxTopArc, loopH);
-      pendingArcs.push({
-        type: 'self',
-        x1,
-        x2,
-        loopH,
-        orbitId: tok.orbitId,
-        color,
-        fromBeat: tok.beatIndex,
-        toBeat: dt,
-        label: tok.text,
-      });
-    } else if (x2 > x1) {
-      const rx = (x2 - x1) / 2;
-      const ry = Math.min(MAX_ARC_RY, Math.max(20, rx * 0.68));
-      maxTopArc = Math.max(maxTopArc, ry);
-      pendingArcs.push({
-        type: 'forward',
-        x1,
-        x2,
-        rx,
-        ry,
-        orbitId: tok.orbitId,
-        color,
-        fromBeat: tok.beatIndex,
-        toBeat: dt,
-        label: tok.text,
-      });
-    } else {
-      const rx = (x1 - x2) / 2;
-      const ry = Math.min(MAX_ARC_RY, Math.max(20, rx * 0.68));
-      maxBottomArc = Math.max(maxBottomArc, ry);
-      pendingArcs.push({
-        type: 'backward',
-        x1,
-        x2,
-        rx,
-        ry,
-        orbitId: tok.orbitId,
-        color,
-        fromBeat: tok.beatIndex,
-        toBeat: dt,
-        label: tok.text,
-      });
-    }
+    rawEdges.push({
+      x1: tok.cx,
+      x2,
+      isSelf: dh === tok.hand && dt === tok.beatIndex,
+      orbitId: tok.orbitId,
+      color: colorForOrbit(tok.orbitId),
+      fromBeat: tok.beatIndex,
+      toBeat: dt,
+      label: tok.text,
+    });
   }
 
-  const PAD_Y = 14;
-  const rowTop = Math.ceil(PAD_Y + maxTopArc);
-  const rowY = rowTop + ROW_H / 2;
-  const rowBottom = rowTop + ROW_H;
-  const totalHeight = Math.ceil(rowBottom + maxBottomArc + PAD_Y);
-
-  const arcs = pendingArcs.map(arc => {
-    let d;
-    if (arc.type === 'self') {
-      const y = rowTop - 2;
-      d = `M ${arc.x1 - 2.5} ${y} C ${arc.x1 - 16} ${y - arc.loopH}, ${arc.x1 + 14} ${y - arc.loopH}, ${arc.x1 + 2.5} ${y - 2}`;
-    } else if (arc.type === 'forward') {
-      const y = rowTop - 2;
-      d = `M ${arc.x1} ${y} A ${arc.rx} ${arc.ry} 0 0 1 ${arc.x2} ${y - 3}`;
-    } else {
-      const y = rowBottom + 2;
-      d = `M ${arc.x1} ${y} A ${arc.rx} ${arc.ry} 0 0 1 ${arc.x2} ${y + 3}`;
-    }
-    return { ...arc, d };
-  });
+  const { rowTop, rowY, rowBottom, totalHeight, arcs } = buildArcsLayout(rawEdges, ROW_H);
 
   const orbits = orbitSummaries.map(summary => ({
     id: summary.id,

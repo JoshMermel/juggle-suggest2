@@ -153,14 +153,18 @@ export function getHandPosition(events, cycleLength, isLeft, time) {
 
   const t = mod(time, cycleLength);
 
-  // Find the next event strictly after t and the previous event at or before t.
-  let nextIdx = -1;
-  for (let i = 0; i < events.length; i++) {
-    if (events[i].time > t) {
-      nextIdx = i;
-      break;
+  // Binary search for the first event strictly after t.
+  let lo = 0;
+  let hi = events.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >>> 1;
+    if (events[mid].time <= t) {
+      lo = mid + 1;
+    } else {
+      hi = mid;
     }
   }
+  const nextIdx = lo < events.length ? lo : -1;
 
   let nextEvent, nextTime, prevEvent, prevTime;
   if (nextIdx !== -1) {

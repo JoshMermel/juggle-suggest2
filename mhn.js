@@ -68,16 +68,11 @@ export const MixedState = Object.freeze({
   AFTER_STAR: 18,
 });
 
-const OPEN_BRACE_STATES = new Set([
-  MixedState.A_EMPTY_BRACE,
-  MixedState.A_BRACE,
-  MixedState.A_BRACE_AFTER_TOSS,
-  MixedState.S_FIRST_EMPTY_BRACE,
-  MixedState.S_FIRST_BRACE,
-  MixedState.S_FIRST_X_OR_BRACE,
-  MixedState.S_SECOND_EMPTY_BRACE,
-  MixedState.S_SECOND_BRACE,
-  MixedState.S_SECOND_X_OR_BRACE,
+const CLOSED_STATES = new Set([
+  MixedState.NORMAL,
+  MixedState.A_AFTER_TOSS,
+  MixedState.S_AFTER_PAREN,
+  MixedState.AFTER_STAR,
 ]);
 
 function unexpected(ch, pos, expected) {
@@ -662,13 +657,7 @@ export function isValidMhn(mhn) {
   if (mhn.error !== undefined || mhn.period === 0) {
     return false;
   }
-  const closedStates = new Set([
-    MixedState.NORMAL,
-    MixedState.A_AFTER_TOSS,
-    MixedState.S_AFTER_PAREN,
-    MixedState.AFTER_STAR,
-  ]);
-  if (!closedStates.has(mhn.state)) {
+  if (!CLOSED_STATES.has(mhn.state)) {
     return false;
   }
   const P = mhn.period;
@@ -912,6 +901,7 @@ function solveMixedFromParsed(parsed, input, allowMultiplex, extraSteps = 0) {
   let foundS = -1;
   let foundDowns = null;
   let foundCount = 0;
+  let multiplexPossible = false;
 
   for (let s = 0; s <= searchLimit; s++) {
     if (s > baseLimit && foundCount === 0) {
@@ -929,11 +919,13 @@ function solveMixedFromParsed(parsed, input, allowMultiplex, extraSteps = 0) {
         break;
       }
       foundCount++;
+    } else if (!allowMultiplex && !multiplexPossible && mixedNoConflict(parsed, constraints, downs, totalPeriod, true)) {
+      multiplexPossible = true;
     }
   }
 
   if (foundS === -1) {
-    if (!allowMultiplex && solveMixedFromParsed(parsed, input, true, 0).error === undefined) {
+    if (!allowMultiplex && multiplexPossible) {
       return { error: `No valid vanilla suffix exists for '${input}' (try Multiplex mode).` };
     }
     return { error: `No valid suffixes exist for '${input}' (throws collide on a prefix beat).` };

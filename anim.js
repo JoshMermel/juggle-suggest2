@@ -9,7 +9,7 @@ import {
   getHandPosition,
   computeJugglerPose,
 } from './juggler.js';
-import { shuffled } from './utils.js';
+import { PALETTE, pickDistinctColors } from './colors.js';
 
 const BASE_RADIUS = 10;
 const BASE_PX_PER_Y = 10;
@@ -246,21 +246,7 @@ function drawJuggler(ctx, keyframe_count, metrics) {
   ctx.restore();
 }
 
-export const palette = [
-  "#000000", "#1CE6FF", "#FF34FF", "#FF4A46", "#008941", "#006FA6",
-  "#A30059", "#7A4900", "#0000A6", "#B79762", "#004D43", "#997D87", "#5A0007",
-  "#809693", "#1B4400", "#4FC601", "#3B5DFF", "#4A3B53", "#FF2F80", "#61615A",
-  "#BA0900", "#6B7900", "#00C2A0", "#B903AA", "#D16100", "#000035", "#7B4F4B",
-  "#A1C299", "#300018", "#0AA6D8", "#013349", "#00846F", "#372101", "#FFB500",
-  "#A079BF", "#CC0744", "#C0B9B2", "#001E09", "#00489C", "#6F0062", "#0CBD66",
-  "#456D75", "#B77B68", "#7A87A1", "#788D66", "#885578", "#FF8A9A", "#D157A0",
-  "#BEC459", "#456648", "#0086ED", "#886F4C", "#34362D", "#B4A8BD", "#00A6AA",
-  "#452C2C", "#636375", "#A3C8C9", "#FF913F", "#938A81", "#575329", "#B05B6F",
-  "#3B9700", "#04F757", "#C8A1A1", "#1E6E00", "#7900D7", "#A77500", "#6367A9",
-  "#A05837", "#6B002C", "#772600", "#D790FF", "#9B9700", "#549E79", "#201625",
-  "#72418F", "#BC23FF", "#99ADC0", "#3A2465", "#922329", "#5B4534", "#404E55",
-  "#0089A3", "#CB7E98", "#A4E804", "#324E72", "#6A3A4C"
-];
+export const palette = PALETTE;
 
 let keyframe_count = 0;
 let balls = [];
@@ -271,9 +257,14 @@ let canvas_el = null;
 let ctx = null;
 let logical_width = 350;
 let logical_height = 600;
+let cached_metrics = computeSceneMetrics(0, 350, 600);
 let last_draw_time = null;
 let raf_id = null;
 let resize_bound = false;
+
+function refreshSceneMetrics() {
+  cached_metrics = computeSceneMetrics(max_throw, logical_width, logical_height);
+}
 
 export function getOrbitColors() {
   return new Map(orbit_colors);
@@ -289,6 +280,7 @@ export function resizeCanvas() {
   canvas_el.width = Math.round(logical_width * dpr);
   canvas_el.height = Math.round(logical_height * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  refreshSceneMetrics();
 }
 
 export function startAnimation(canvas) {
@@ -311,6 +303,7 @@ export function startAnimation(canvas) {
 
 export function setSiteswap(siteswap, color_by_orbit, is_sync, decomposed = null) {
   max_throw = maxThrow(siteswap, is_sync);
+  refreshSceneMetrics();
   hand_schedule = buildHandSchedule(siteswap, is_sync);
   const { orbits } = decomposed || decomposeOrbits(siteswap, is_sync);
   balls = orbits.map(orbit => new Ball(orbit, is_sync));
@@ -323,6 +316,7 @@ export function setSiteswap(siteswap, color_by_orbit, is_sync, decomposed = null
 
 export function setMhn(mhn, color_by_orbit, decomposed = null) {
   max_throw = maxThrowMhn(mhn);
+  refreshSceneMetrics();
   hand_schedule = buildHandScheduleFromMhn(mhn);
   const { orbits } = decomposed || decomposeMhnOrbits(mhn);
   balls = orbits.map(orbit => new Ball(orbit, false));
@@ -333,25 +327,27 @@ export function setMhn(mhn, color_by_orbit, decomposed = null) {
   }
 }
 
-export function recolorRandomly() {
-  const local_palette = shuffled(palette);
+function assignOrbitColors() {
+  const uniqueOrbitIds = [...new Set(balls.map(b => b.orbit.id))];
+  const orbitPalette = pickDistinctColors(uniqueOrbitIds.length, { randomize: true });
   orbit_colors = new Map();
+  uniqueOrbitIds.forEach((oid, idx) => {
+    orbit_colors.set(oid, orbitPalette[idx]);
+  });
+}
+
+export function recolorRandomly() {
+  assignOrbitColors();
+  const ballColors = pickDistinctColors(balls.length, { randomize: true });
   for (let i = 0; i < balls.length; i++) {
-    balls[i].color = local_palette[i % local_palette.length];
-    const oid = balls[i].orbit.id;
-    if (!orbit_colors.has(oid)) {
-      orbit_colors.set(oid, local_palette[oid % local_palette.length]);
-    }
+    balls[i].color = ballColors[i];
   }
 }
 
 export function recolorByOrbit() {
-  const local_palette = shuffled(palette);
-  orbit_colors = new Map();
+  assignOrbitColors();
   for (const ball of balls) {
-    const color = local_palette[ball.orbit.id % local_palette.length];
-    ball.color = color;
-    orbit_colors.set(ball.orbit.id, color);
+    ball.color = orbit_colors.get(ball.orbit.id);
   }
 }
 
@@ -366,13 +362,12 @@ function draw(timestamp) {
   keyframe_count += delta * pace / 16;
 
   ctx.clearRect(0, 0, logical_width, logical_height);
-  const metrics = computeSceneMetrics(max_throw, logical_width, logical_height);
 
-  drawJuggler(ctx, keyframe_count, metrics);
+  drawJuggler(ctx, keyframe_count, cached_metrics);
 
   for (const ball of balls) {
     ball.updatePosition(keyframe_count);
-    ball.drawSelf(ctx, metrics);
+    ball.drawSelf(ctx, cached_metrics);
   }
 
   raf_id = window.requestAnimationFrame(draw);
