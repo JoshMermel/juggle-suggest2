@@ -13,14 +13,9 @@ import { shuffled } from './utils.js';
 const RADIUS = 10;
 
 let pace = 0.03125;
-let show_juggler = true;
 
 export function setPace(new_pace) {
   pace = new_pace;
-}
-
-export function setShowJuggler(enabled) {
-  show_juggler = Boolean(enabled);
 }
 
 // Maps world coordinates (x in [-100, 100], y >= -DWELL_DISTANCE) to canvas pixels.
@@ -323,9 +318,7 @@ function draw(timestamp) {
   const peak_duration = Math.max(0, max_throw - DWELL);
   const max_height = peak_duration * peak_duration;
 
-  if (show_juggler) {
-    drawJuggler(ctx, keyframe_count, logical_width, logical_height, max_height);
-  }
+  drawJuggler(ctx, keyframe_count, logical_width, logical_height, max_height);
 
   for (const ball of balls) {
     ball.updatePosition(keyframe_count);

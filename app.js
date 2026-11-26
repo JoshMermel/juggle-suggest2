@@ -7,7 +7,6 @@ import {
   recolorByOrbit,
   recolorRandomly,
   setPace,
-  setShowJuggler,
   getOrbitColors,
 } from './anim.js';
 import { createAutocomplete } from './autocomplete.js';
@@ -281,12 +280,6 @@ function initApp() {
   };
   speedSlider.addEventListener('input', syncSpeed);
   syncSpeed();
-
-  const jugglerToggle = document.getElementById('show_juggler');
-  jugglerToggle.addEventListener('change', () => {
-    setShowJuggler(jugglerToggle.checked);
-  });
-  setShowJuggler(jugglerToggle.checked);
 
   renderStarredList();
 

@@ -26,9 +26,9 @@ the end of the input to accept the suggestion.
 
 ### Animator
 
-Animates the completed pattern on an HTML5 Canvas with a toggleable 3D-IK
-juggler, automatic gravity scaling for tall throws, orbit or random ball
-coloring, and a speed slider.
+Animates the completed pattern on an HTML5 Canvas with a 3D-IK juggler,
+automatic gravity scaling for tall throws, orbit or random ball coloring, and a
+speed slider.
 
 ### Orbits Visualizer
 
