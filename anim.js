@@ -1,16 +1,40 @@
-import { maxThrow, splitOrbits, Pos } from './orbits.js';
+import { maxThrow, decomposeOrbits, Pos } from './orbits.js';
+import {
+  THROW_X,
+  CATCH_X,
+  DWELL,
+  DWELL_DISTANCE,
+  buildHandSchedule,
+  getHandPosition,
+  computeJugglerPose,
+} from './juggler.js';
 import { shuffled } from './utils.js';
 
-const THROW_X = { true: -50, false: 50 };
-const CATCH_X = { true: -75, false: 75 };
 const RADIUS = 10;
-const DWELL = 0.5;
-const DWELL_DISTANCE = 4;
 
 let pace = 0.03125;
+let show_juggler = true;
 
 export function setPace(new_pace) {
   pace = new_pace;
+}
+
+export function setShowJuggler(enabled) {
+  show_juggler = Boolean(enabled);
+}
+
+// Maps world coordinates (x in [-100, 100], y >= -DWELL_DISTANCE) to canvas pixels.
+export function worldToScreen(wx, wy, canvas_width, canvas_height, max_height) {
+  const x = (wx * canvas_width / 200) + (canvas_width / 2);
+  // If max height is small, avoid over-scaling so low patterns don't look stretched.
+  const pattern_height = max_height + RADIUS + RADIUS + DWELL_DISTANCE;
+  let y;
+  if (pattern_height < (canvas_height / 10)) {
+    y = canvas_height - max_height - RADIUS - 10 * (wy + DWELL_DISTANCE);
+  } else {
+    y = (max_height + RADIUS - wy) * canvas_height / pattern_height;
+  }
+  return { x, y };
 }
 
 export class Ball {
@@ -49,28 +73,149 @@ export class Ball {
       peak_y = -1 * Math.min(DWELL_DISTANCE, DWELL_DISTANCE * pos.max_landing_with / 10);
     }
 
-    const peak_x = (source_x + dest_x) / 2;
-    this.x = source_x + ((dest_x - source_x) * progress / duration);
-    this.y = peak_y * ((this.x - source_x) * (this.x - dest_x)) /
-      ((peak_x - source_x) * (peak_x - dest_x));
+    const u = progress / duration;
+    this.x = source_x + (dest_x - source_x) * u;
+    this.y = peak_y * 4 * u * (1 - u);
   }
 
   drawSelf(ctx, canvas_width, canvas_height, max_height) {
-    const render_x = (this.x * canvas_width / 200) + (canvas_width / 2);
-    // If max height is small, avoid over-scaling so low patterns don't look stretched.
-    const pattern_height = max_height + RADIUS + RADIUS + DWELL_DISTANCE;
-    let render_y;
-    if (pattern_height < (canvas_height / 10)) {
-      render_y = canvas_height - max_height - RADIUS - 10 * (this.y + DWELL_DISTANCE);
-    } else {
-      render_y = (max_height + RADIUS - this.y) * canvas_height / pattern_height;
-    }
+    const { x: render_x, y: render_y } = worldToScreen(
+      this.x,
+      this.y,
+      canvas_width,
+      canvas_height,
+      max_height
+    );
 
     ctx.fillStyle = this.color;
     ctx.beginPath();
     ctx.arc(render_x, render_y, RADIUS, 0, 2 * Math.PI);
     ctx.fill();
   }
+}
+
+const JUGGLER_STROKE = '#444444';
+const JUGGLER_FILL = '#ffffff';
+
+function drawArm(ctx, arm, scale) {
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = JUGGLER_STROKE;
+
+  // Upper arm + forearm in one uniform color
+  ctx.lineWidth = 3.5 * scale;
+  ctx.beginPath();
+  ctx.moveTo(arm.shoulder.x, arm.shoulder.y);
+  ctx.lineTo(arm.elbow.x, arm.elbow.y);
+  ctx.lineTo(arm.hand.x, arm.hand.y);
+  ctx.stroke();
+
+  // Subtle elbow joint
+  ctx.fillStyle = JUGGLER_STROKE;
+  ctx.beginPath();
+  ctx.arc(arm.elbow.x, arm.elbow.y, 2.5 * scale, 0, 2 * Math.PI);
+  ctx.fill();
+
+  // Hand palm indicator
+  ctx.fillStyle = JUGGLER_FILL;
+  ctx.lineWidth = 2.0 * scale;
+  ctx.beginPath();
+  ctx.arc(arm.hand.x, arm.hand.y, 4.5 * scale, 0, 2 * Math.PI);
+  ctx.fill();
+  ctx.stroke();
+}
+
+function drawJuggler(ctx, keyframe_count, canvas_width, canvas_height, max_height) {
+  const leftWorld = getHandPosition(hand_schedule.left, hand_schedule.cycleLength, true, keyframe_count);
+  const rightWorld = getHandPosition(hand_schedule.right, hand_schedule.cycleLength, false, keyframe_count);
+
+  const leftHand = worldToScreen(leftWorld.x, leftWorld.y, canvas_width, canvas_height, max_height);
+  const rightHand = worldToScreen(rightWorld.x, rightWorld.y, canvas_width, canvas_height, max_height);
+  const handLineY = worldToScreen(0, 0, canvas_width, canvas_height, max_height).y;
+
+  const pose = computeJugglerPose(leftHand, rightHand, handLineY, canvas_width, canvas_height);
+  const s = pose.scale;
+  const cx = pose.collar.x;
+  const hipW = pose.rightHip.x - cx;
+  const bottomY = canvas_height + 4;
+  const innerLegHalfGap = 5 * s;
+
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = JUGGLER_STROKE;
+
+  // Neck
+  ctx.lineWidth = 3.5 * s;
+  ctx.beginPath();
+  ctx.moveTo(pose.neckTop.x, pose.neckTop.y);
+  ctx.lineTo(pose.collar.x, pose.collar.y + 4 * s);
+  ctx.stroke();
+
+  // Torso with natural waist curve, hips, and upper legs splitting at crotch
+  ctx.fillStyle = JUGGLER_FILL;
+  ctx.lineWidth = 3.0 * s;
+  ctx.beginPath();
+  ctx.moveTo(cx - hipW * 1.02, bottomY);
+  ctx.lineTo(pose.leftHip.x, pose.leftHip.y);
+  ctx.quadraticCurveTo(
+    pose.leftWaist.x,
+    pose.leftWaist.y + 4 * s,
+    pose.leftWaist.x,
+    pose.leftWaist.y
+  );
+  ctx.quadraticCurveTo(
+    pose.leftShoulder.x + 2 * s,
+    (pose.leftShoulder.y + pose.leftWaist.y) / 2,
+    pose.leftShoulder.x,
+    pose.leftShoulder.y
+  );
+  ctx.quadraticCurveTo(
+    pose.leftShoulder.x,
+    pose.collar.y,
+    cx - 10 * s,
+    pose.collar.y
+  );
+  ctx.lineTo(cx + 10 * s, pose.collar.y);
+  ctx.quadraticCurveTo(
+    pose.rightShoulder.x,
+    pose.collar.y,
+    pose.rightShoulder.x,
+    pose.rightShoulder.y
+  );
+  ctx.quadraticCurveTo(
+    pose.rightShoulder.x - 2 * s,
+    (pose.rightShoulder.y + pose.rightWaist.y) / 2,
+    pose.rightWaist.x,
+    pose.rightWaist.y
+  );
+  ctx.quadraticCurveTo(
+    pose.rightWaist.x,
+    pose.rightWaist.y + 4 * s,
+    pose.rightHip.x,
+    pose.rightHip.y
+  );
+  ctx.lineTo(cx + hipW * 1.02, bottomY);
+  ctx.lineTo(cx + innerLegHalfGap, bottomY);
+  ctx.lineTo(pose.crotch.x, pose.crotch.y);
+  ctx.lineTo(cx - innerLegHalfGap, bottomY);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // Head
+  ctx.fillStyle = JUGGLER_FILL;
+  ctx.lineWidth = 3.0 * s;
+  ctx.beginPath();
+  ctx.arc(pose.headCenter.x, pose.headCenter.y, pose.headRadius, 0, 2 * Math.PI);
+  ctx.fill();
+  ctx.stroke();
+
+  // 3D-IK arms (shoulder -> elbow -> hand)
+  drawArm(ctx, pose.leftArm, s);
+  drawArm(ctx, pose.rightArm, s);
+
+  ctx.restore();
 }
 
 export const palette = [
@@ -92,12 +237,19 @@ export const palette = [
 let keyframe_count = 0;
 let balls = [];
 let max_throw = 0;
+let hand_schedule = { cycleLength: 0, left: [], right: [] };
+let orbit_colors = new Map();
 let canvas_el = null;
 let ctx = null;
 let logical_width = 350;
 let logical_height = 600;
 let last_draw_time = null;
 let raf_id = null;
+let resize_bound = false;
+
+export function getOrbitColors() {
+  return new Map(orbit_colors);
+}
 
 export function resizeCanvas() {
   if (!canvas_el || !ctx) {
@@ -118,7 +270,10 @@ export function startAnimation(canvas) {
   }
   ctx = canvas_el.getContext('2d');
   resizeCanvas();
-  window.addEventListener('resize', resizeCanvas);
+  if (!resize_bound) {
+    window.addEventListener('resize', resizeCanvas);
+    resize_bound = true;
+  }
   if (raf_id !== null) {
     window.cancelAnimationFrame(raf_id);
   }
@@ -126,9 +281,10 @@ export function startAnimation(canvas) {
   raf_id = window.requestAnimationFrame(draw);
 }
 
-export function setSiteswap(siteswap, color_by_orbit, is_sync) {
+export function setSiteswap(siteswap, color_by_orbit, is_sync, decomposed = null) {
   max_throw = maxThrow(siteswap, is_sync);
-  const orbits = splitOrbits(siteswap, is_sync);
+  hand_schedule = buildHandSchedule(siteswap, is_sync);
+  const { orbits } = decomposed || decomposeOrbits(siteswap, is_sync);
   balls = orbits.map(orbit => new Ball(orbit, is_sync));
   if (color_by_orbit) {
     recolorByOrbit();
@@ -139,15 +295,23 @@ export function setSiteswap(siteswap, color_by_orbit, is_sync) {
 
 export function recolorRandomly() {
   const local_palette = shuffled(palette);
+  orbit_colors = new Map();
   for (let i = 0; i < balls.length; i++) {
     balls[i].color = local_palette[i % local_palette.length];
+    const oid = balls[i].orbit.id;
+    if (!orbit_colors.has(oid)) {
+      orbit_colors.set(oid, local_palette[oid % local_palette.length]);
+    }
   }
 }
 
 export function recolorByOrbit() {
   const local_palette = shuffled(palette);
+  orbit_colors = new Map();
   for (const ball of balls) {
-    ball.color = local_palette[ball.orbit.id % local_palette.length];
+    const color = local_palette[ball.orbit.id % local_palette.length];
+    ball.color = color;
+    orbit_colors.set(ball.orbit.id, color);
   }
 }
 
@@ -162,7 +326,13 @@ function draw(timestamp) {
   keyframe_count += delta * pace / 16;
 
   ctx.clearRect(0, 0, logical_width, logical_height);
-  const max_height = (max_throw - DWELL) * (max_throw - DWELL);
+  const peak_duration = Math.max(0, max_throw - DWELL);
+  const max_height = peak_duration * peak_duration;
+
+  if (show_juggler) {
+    drawJuggler(ctx, keyframe_count, logical_width, logical_height, max_height);
+  }
+
   for (const ball of balls) {
     ball.updatePosition(keyframe_count);
     ball.drawSelf(ctx, logical_width, logical_height, max_height);

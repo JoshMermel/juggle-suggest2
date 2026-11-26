@@ -80,47 +80,69 @@ export function maxLandings(siteswap, is_sync) {
 
 const MAX_HOLD = 0.4;
 
-// Splits a siteswap into a list of Orbits without mutating the input.
-// Each orbit represents a 1-ball siteswap.
-export function splitOrbits(siteswap, is_sync) {
-  // Filter out 0s so empty beats and 0s inside multiplexes (e.g. 3[30]) never
-  // enter a ball's orbit.
-  const remaining = siteswap.map(tosses => tosses.filter(t => t !== 0));
-  const original = remaining.map(tosses => Array.from(tosses));
+// Decomposes a siteswap into Orbits without mutating the input, also returning
+// per-orbit summaries and a parallel throwOrbitIds[beat][throwIdx] map.
+export function decomposeOrbits(siteswap, is_sync) {
+  const remaining = siteswap.map(tosses =>
+    tosses
+      .map((toss, origIdx) => ({ toss, origIdx }))
+      .filter(entry => entry.toss !== 0)
+  );
+  const original = remaining.map(entries => entries.map(e => e.toss));
+  const throwOrbitIds = siteswap.map(tosses => tosses.map(() => -1));
 
-  const ret = [];
-  // landing_seq holds the highest throw caught on each beat.
-  // hold_seq staggers stacked multiplex throws between catch and dwell.
+  const orbits = [];
+  const orbitSummaries = [];
   const max_landings = maxLandings(siteswap, is_sync);
   let id = 0;
 
-  let first = firstNonempty(remaining);
+  const findNextBeat = () => remaining.findIndex(beat => beat.length > 0);
+  let first = findNextBeat();
   while (first !== -1) {
     const toss_seq = [];
+    const beat_seq = [];
     const landing_seq = [];
     const hold_seq = [];
     let newindex = first;
 
     do {
-      const steal = remaining[newindex].pop();
+      if (remaining[newindex].length === 0) {
+        break;
+      }
+      const { toss: steal, origIdx } = remaining[newindex].pop();
+      throwOrbitIds[newindex][origIdx] = id;
       const stacked_size = original[newindex].filter(c => c === steal).length;
-      const stacked_remaining = remaining[newindex].filter(c => c === steal).length;
+      const stacked_remaining = remaining[newindex].filter(e => e.toss === steal).length;
       hold_seq.push(MAX_HOLD * stacked_remaining / stacked_size);
       toss_seq.push(steal);
+      beat_seq.push(newindex);
       landing_seq.push(max_landings[newindex]);
       newindex = (newindex + steal) % remaining.length;
     } while (newindex !== first);
 
     const num_balls = arraysum(toss_seq) / remaining.length;
+    orbitSummaries.push({
+      id,
+      balls: num_balls,
+      tossSeq: Array.from(toss_seq),
+      beatSeq: Array.from(beat_seq),
+    });
+
     for (let i = 0; i < num_balls; i++) {
-      ret.push(new Orbit(Array.from(toss_seq), Array.from(landing_seq), Array.from(hold_seq), first, id, is_sync));
+      orbits.push(new Orbit(Array.from(toss_seq), Array.from(landing_seq), Array.from(hold_seq), first, id, is_sync));
       first += remaining.length;
     }
     id += 1;
-    first = firstNonempty(remaining);
+    first = findNextBeat();
   }
 
-  return ret;
+  return { orbits, orbitSummaries, throwOrbitIds };
+}
+
+// Splits a siteswap into a list of Orbits without mutating the input.
+// Each orbit represents a 1-ball siteswap.
+export function splitOrbits(siteswap, is_sync) {
+  return decomposeOrbits(siteswap, is_sync).orbits;
 }
 
 // Returns what is happening in `orbit` at `time`:

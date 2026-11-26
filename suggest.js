@@ -121,6 +121,10 @@ const POST_X_STATES = new Set([
   SyncStateEnum.S_SECOND_BRACE,
 ]);
 
+function unexpectedChar(next_char, expected) {
+  return `Unexpected '${next_char}' (expected ${expected})`;
+}
+
 function parseANormal(s, next_char) {
   if (next_char === "[") {
     s.parse_state = AsyncStateEnum.A_EMPTY_BRACE;
@@ -128,7 +132,7 @@ function parseANormal(s, next_char) {
   } else if (isValidAsyncToss(next_char)) {
     s.siteswap.push([toInt(next_char)]);
   } else {
-    s.error = "Unexpected character " + next_char;
+    s.error = unexpectedChar(next_char, "a toss 0-9/a-z or '['");
   }
 }
 
@@ -137,7 +141,7 @@ function parseAEmptyBrace(s, next_char) {
     s.siteswap[s.siteswap.length - 1].push(toInt(next_char));
     s.parse_state = AsyncStateEnum.A_BRACE;
   } else {
-    s.error = "Unexpected character " + next_char;
+    s.error = unexpectedChar(next_char, "a toss 0-9/a-z inside '['");
   }
 }
 
@@ -147,7 +151,7 @@ function parseABrace(s, next_char) {
   } else if (next_char === "]") {
     s.parse_state = AsyncStateEnum.A_NORMAL;
   } else {
-    s.error = "Unexpected character " + next_char;
+    s.error = unexpectedChar(next_char, "a toss 0-9/a-z or ']'");
   }
 }
 
@@ -161,7 +165,7 @@ function parseSyncNormal(s, next_char) {
   if (next_char === "(") {
     s.parse_state = SyncStateEnum.S_FIRST;
   } else {
-    s.error = "Unexpected character " + next_char;
+    s.error = unexpectedChar(next_char, "'(' to start a sync pair");
   }
 }
 
@@ -176,7 +180,7 @@ function parseSyncFirst(s, next_char) {
     s.parse_state = SyncStateEnum.S_FIRST_X;
     s.siteswap.push([toInt(next_char)]);
   } else {
-    s.error = "Unexpected character " + next_char;
+    s.error = unexpectedChar(next_char, "an even toss (0, 2, 4, ...) or '['");
   }
 }
 
@@ -187,7 +191,7 @@ function parseSyncFirstX(s, next_char) {
     s.parse_state = SyncStateEnum.S_COMMA;
     appendX(s);
   } else {
-    s.error = "Unexpected character " + next_char;
+    s.error = unexpectedChar(next_char, "',' or 'x'");
   }
 }
 
@@ -199,7 +203,7 @@ function parseSyncFirstEmptyBrace(s, next_char) {
     s.parse_state = SyncStateEnum.S_FIRST_X_OR_BRACE;
     s.siteswap[s.siteswap.length - 1].push(toInt(next_char));
   } else {
-    s.error = "Unexpected character " + next_char;
+    s.error = unexpectedChar(next_char, "an even toss (0, 2, 4, ...) inside '['");
   }
 }
 
@@ -213,7 +217,7 @@ function parseSyncFirstBrace(s, next_char) {
   } else if (next_char === "]") {
     s.parse_state = SyncStateEnum.S_COMMA;
   } else {
-    s.error = "Unexpected character " + next_char;
+    s.error = unexpectedChar(next_char, "an even toss (0, 2, 4, ...) or ']'");
   }
 }
 
@@ -230,7 +234,7 @@ function parseSyncFirstXOrBrace(s, next_char) {
   } else if (next_char === "]") {
     s.parse_state = SyncStateEnum.S_COMMA;
   } else {
-    s.error = "Unexpected character " + next_char;
+    s.error = unexpectedChar(next_char, "an even toss, 'x', or ']'");
   }
 }
 
@@ -238,7 +242,7 @@ function parseSyncComma(s, next_char) {
   if (next_char === ",") {
     s.parse_state = SyncStateEnum.S_SECOND;
   } else {
-    s.error = "Unexpected character " + next_char;
+    s.error = unexpectedChar(next_char, "','");
   }
 }
 
@@ -253,7 +257,7 @@ function parseSyncSecond(s, next_char) {
     s.parse_state = SyncStateEnum.S_SECOND_X;
     s.siteswap.push([toInt(next_char)]);
   } else {
-    s.error = "Unexpected character " + next_char;
+    s.error = unexpectedChar(next_char, "an even toss (0, 2, 4, ...) or '['");
   }
 }
 
@@ -264,7 +268,7 @@ function parseSyncSecondX(s, next_char) {
     s.parse_state = SyncStateEnum.S_PAREN;
     appendX(s);
   } else {
-    s.error = "Unexpected character " + next_char;
+    s.error = unexpectedChar(next_char, "')' or 'x'");
   }
 }
 
@@ -276,7 +280,7 @@ function parseSyncSecondEmptyBrace(s, next_char) {
     s.parse_state = SyncStateEnum.S_SECOND_X_OR_BRACE;
     s.siteswap[s.siteswap.length - 1].push(toInt(next_char));
   } else {
-    s.error = "Unexpected character " + next_char;
+    s.error = unexpectedChar(next_char, "an even toss (0, 2, 4, ...) inside '['");
   }
 }
 
@@ -290,7 +294,7 @@ function parseSyncSecondBrace(s, next_char) {
   } else if (next_char === "]") {
     s.parse_state = SyncStateEnum.S_PAREN;
   } else {
-    s.error = "Unexpected character " + next_char;
+    s.error = unexpectedChar(next_char, "an even toss (0, 2, 4, ...) or ']'");
   }
 }
 
@@ -307,7 +311,7 @@ function parseSyncSecondXOrBrace(s, next_char) {
   } else if (next_char === "]") {
     s.parse_state = SyncStateEnum.S_PAREN;
   } else {
-    s.error = "Unexpected character " + next_char;
+    s.error = unexpectedChar(next_char, "an even toss, 'x', or ']'");
   }
 }
 
@@ -315,7 +319,7 @@ function parseSyncParen(s, next_char) {
   if (next_char === ")") {
     s.parse_state = SyncStateEnum.S_NORMAL;
   } else {
-    s.error = "Unexpected character " + next_char;
+    s.error = unexpectedChar(next_char, "')'");
   }
 }
 
@@ -420,27 +424,37 @@ function noMultiplexAdded(downs, prefix_len) {
   return true;
 }
 
-// Finds the shortest valid suffix length and returns { length, downs } or null.
-function findShortestSuffix(s, ups, allow_multiplex, is_sync) {
+// Finds the (extra_steps + 1)-th shortest valid suffix length and returns { length, downs } or null.
+function findShortestSuffix(s, ups, allow_multiplex, is_sync, extra_steps = 0) {
   const start = is_sync
     ? (s.siteswap.length % 2) + (s.parse_state === SyncStateEnum.S_FIRST ? 2 : 0)
     : 0;
   const step = is_sync ? 2 : 1;
-  const limit = maxLengthToCheck(s) + (is_sync ? 1 : 0);
+  const baseLimit = maxLengthToCheck(s) + (is_sync ? 1 : 0);
+  const stepsWanted = Math.max(0, Math.floor(extra_steps));
+  const searchLimit = baseLimit + (stepsWanted > 0 ? (stepsWanted + 10) * step : 0);
 
-  for (let i = start; i <= limit; i += step) {
+  let foundCount = 0;
+  for (let i = start; i <= searchLimit; i += step) {
+    // Once past baseLimit without finding a single valid length, no larger length can work.
+    if (i > baseLimit && foundCount === 0) {
+      return null;
+    }
     const downs = getDowns(s, i);
     if (noConflict(ups, downs, s.parse_state)) {
       if (allow_multiplex || noMultiplexAdded(downs, s.siteswap.length)) {
-        return { length: i, downs };
+        if (foundCount === stepsWanted) {
+          return { length: i, downs };
+        }
+        foundCount++;
       }
     }
   }
   return null;
 }
 
-function suffixLength(prefix, allow_multiplex, is_sync) {
-  const found = findShortestSuffix(prefix, getUps(prefix), allow_multiplex, is_sync);
+function suffixLength(prefix, allow_multiplex, is_sync, extra_steps = 0) {
+  const found = findShortestSuffix(prefix, getUps(prefix), allow_multiplex, is_sync, extra_steps);
   return found ? found.length : -1;
 }
 
@@ -668,11 +682,14 @@ function combineSiteswap(prefix_siteswap, suffix_map) {
 }
 
 // Core suggestion engine operating on an already-parsed prefix object.
-function suggestFromParsed(prefix, input, allow_multiplex, is_sync) {
+function suggestFromParsed(prefix, input, allow_multiplex, is_sync, extra_steps = 0) {
   const ups = getUps(prefix);
-  const found = findShortestSuffix(prefix, ups, allow_multiplex, is_sync);
+  const found = findShortestSuffix(prefix, ups, allow_multiplex, is_sync, extra_steps);
   if (found === null) {
-    return { error: "No valid suffixes exist for " + input };
+    if (!allow_multiplex && findShortestSuffix(prefix, ups, true, is_sync, 0) !== null) {
+      return { error: `No valid vanilla suffix exists for '${input}' (throws land on the same beat; try Multiplex mode).` };
+    }
+    return { error: `No valid suffixes exist for '${input}' (throws collide on a prefix beat).` };
   }
 
   const goal_counts = goalCounts(ups, found.downs, found.length, prefix.parse_state);
@@ -691,28 +708,28 @@ function suggestFromParsed(prefix, input, allow_multiplex, is_sync) {
       }
     }
     if (!ok) {
-      return { error: "Suffix requires a throw higher than 'z' (35) for " + input };
+      return { error: `Suffix requires a throw higher than 'z' (35) for '${input}'.` };
     }
   }
 
   const siteswap = combineSiteswap(prefix.siteswap, suffix_map);
   const builderState = { parse_state: prefix.parse_state, siteswap: prefix.siteswap };
   const suffix = buildSuffix(builderState, suffix_map, is_sync);
-  return { suffix, siteswap };
+  return { suffix, siteswap, addedBeats: found.length };
 }
 
 // Returns a suffix string for `input`, or `{ error }`.
-function suggest(input, allow_multiplex, is_sync) {
+function suggest(input, allow_multiplex, is_sync, extra_steps = 0) {
   const prefix = parseSiteswap(input, is_sync);
   if (prefix.error !== undefined) {
     return prefix;
   }
-  const result = suggestFromParsed(prefix, input, allow_multiplex, is_sync);
+  const result = suggestFromParsed(prefix, input, allow_multiplex, is_sync, extra_steps);
   return result.error !== undefined ? result : result.suffix;
 }
 
 // Like suggest, but appends 'x' first in sync mode; returns undefined on failure.
-function suggestWithX(input, allow_multiplex, is_sync) {
+function suggestWithX(input, allow_multiplex, is_sync, extra_steps = 0) {
   if (!is_sync) {
     return undefined;
   }
@@ -720,20 +737,20 @@ function suggestWithX(input, allow_multiplex, is_sync) {
   if (parsed.error !== undefined || !POST_X_STATES.has(parsed.parse_state)) {
     return undefined;
   }
-  const result = suggestFromParsed(parsed, input + 'x', allow_multiplex, true);
+  const result = suggestFromParsed(parsed, input + 'x', allow_multiplex, true, extra_steps);
   return result.error !== undefined ? undefined : result.suffix;
 }
 
 // Single-parse entry point for the UI: tries `input` and (when syntactically
-// valid in sync mode) `input + 'x'`, returning the shorter `{ suffix, siteswap }`
+// valid in sync mode) `input + 'x'`, returning `{ suffix, siteswap, addedBeats }`
 // or `{ error }`.
-function suggestBest(input, allow_multiplex, is_sync) {
+function suggestBest(input, allow_multiplex, is_sync, extra_steps = 0) {
   const prefix = parseSiteswap(input, is_sync);
   if (prefix.error !== undefined) {
     return { error: prefix.error };
   }
 
-  const primary = suggestFromParsed(prefix, input, allow_multiplex, is_sync);
+  const primary = suggestFromParsed(prefix, input, allow_multiplex, is_sync, extra_steps);
 
   if (is_sync && PRE_X_STATES.has(prefix.parse_state)) {
     const xPrefix = {
@@ -742,10 +759,10 @@ function suggestBest(input, allow_multiplex, is_sync) {
     };
     SYNC_PARSE_FUNS[xPrefix.parse_state](xPrefix, 'x');
     if (xPrefix.error === undefined && POST_X_STATES.has(xPrefix.parse_state)) {
-      const withX = suggestFromParsed(xPrefix, input + 'x', allow_multiplex, true);
+      const withX = suggestFromParsed(xPrefix, input + 'x', allow_multiplex, true, extra_steps);
       if (withX.error === undefined &&
           (primary.error !== undefined || primary.suffix.length > withX.suffix.length + 1)) {
-        return { suffix: 'x' + withX.suffix, siteswap: withX.siteswap };
+        return { suffix: 'x' + withX.suffix, siteswap: withX.siteswap, addedBeats: withX.addedBeats };
       }
     }
   }

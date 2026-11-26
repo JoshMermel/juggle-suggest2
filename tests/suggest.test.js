@@ -80,18 +80,48 @@ describe('suggest (async)', () => {
 });
 
 describe('suggest regression & error cases', () => {
-  it('returns error on unparseable inputs', () => {
+  it('returns helpful expected-character error hints on unparseable inputs', () => {
     const res1 = suggest('53!', false, false);
-    assert.ok(res1.error);
+    assert.match(res1.error, /Unexpected '!' \(expected a toss 0-9\/a-z or '\['\) at position 2\./);
     const res2 = suggest('(3,4)', true, true); // odd throw in sync
-    assert.ok(res2.error);
+    assert.match(res2.error, /expected an even toss/i);
     const res3 = suggest('[]', true, false); // empty multiplex
-    assert.ok(res3.error);
+    assert.match(res3.error, /inside '\['/);
+    const res4 = suggest('(4a', true, true);
+    assert.match(res4.error, /expected ',' or 'x'/);
+    const res5 = suggest('(4,4a', true, true);
+    assert.match(res5.error, /expected '\)' or 'x'/);
   });
 
-  it('returns error when no valid vanilla suffix exists (e.g. "32")', () => {
+  it('explains why no vanilla suffix exists when multiplex mode would succeed', () => {
     const res = suggest('32', false, false);
-    assert.ok(res.error);
+    assert.match(res.error, /try Multiplex mode/i);
+  });
+
+  it('supports extra_steps to step through strictly longer valid suffixes', () => {
+    const s0 = suggestBest('531', false, false, 0);
+    const s1 = suggestBest('531', false, false, 1);
+    const s2 = suggestBest('531', false, false, 2);
+    assert.equal(s0.error, undefined);
+    assert.equal(s1.error, undefined);
+    assert.equal(s2.error, undefined);
+    assert.equal(s0.addedBeats, 0);
+    assert.ok(s1.addedBeats > s0.addedBeats);
+    assert.ok(s2.addedBeats > s1.addedBeats);
+    for (const r of [s0, s1, s2]) {
+      const parsed = parseSiteswap('531' + r.suffix, false);
+      assert.equal(parsed.error, undefined);
+      assert.deepEqual(getUps(parsed), getDowns(parsed, 0));
+    }
+
+    // Sync stepping advances by even beat counts
+    const sync0 = suggestBest('(4,4)', true, true, 0);
+    const sync1 = suggestBest('(4,4)', true, true, 1);
+    assert.equal(sync0.addedBeats, 0);
+    assert.equal(sync1.addedBeats, 2);
+    const parsedSync = parseSiteswap('(4,4)' + sync1.suffix, true);
+    assert.equal(parsedSync.error, undefined);
+    assert.deepEqual(getUps(parsedSync), getDowns(parsedSync, 0));
   });
 
   it('returns clean error when all suffixes require throws > z (35)', () => {

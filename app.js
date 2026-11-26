@@ -1,13 +1,37 @@
 import { suggestBest, printSiteswap } from './suggest.js';
 import { randomSiteswap } from './random_siteswap.js';
-import { startAnimation, setSiteswap, recolorByOrbit, recolorRandomly, setPace } from './anim.js';
+import { decomposeOrbits } from './orbits.js';
+import {
+  startAnimation,
+  setSiteswap,
+  recolorByOrbit,
+  recolorRandomly,
+  setPace,
+  setShowJuggler,
+  getOrbitColors,
+} from './anim.js';
 import { createAutocomplete } from './autocomplete.js';
+import { buildOrbitGraphModel, renderOrbitGraph } from './orbits_graph.js';
+import { createPatternStore } from './storage.js';
+
+const MAX_EXTRA_STEPS = 10;
 
 let suggestbox;
+let store;
 let copyResetTimer = null;
+let recentTimer = null;
+
+let currentPattern = '';
+let currentSiteswap = null;
+let currentDecomposed = null;
+let currentIsSync = false;
+let extraSuffixSteps = 0;
 
 async function copyToClipboard() {
   const text = suggestbox.getSuggestion();
+  if (text) {
+    recordRecentNow(text);
+  }
   try {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       await navigator.clipboard.writeText(text);
@@ -36,9 +60,17 @@ function fallbackCopy(text) {
   el.style.position = 'absolute';
   el.style.left = '-9999px';
   document.body.appendChild(el);
+  const sel = document.getSelection();
+  const prevRange = sel && sel.rangeCount > 0 ? sel.getRangeAt(0) : null;
   el.select();
   document.execCommand('copy');
   document.body.removeChild(el);
+  if (sel) {
+    sel.removeAllRanges();
+    if (prevRange) {
+      sel.addRange(prevRange);
+    }
+  }
 }
 
 function showError(message) {
@@ -52,43 +84,188 @@ function hideError() {
   document.getElementById('error').hidden = true;
 }
 
-function updateSuggestion(prefix) {
+function updateStarButton() {
+  const btn = document.getElementById('star');
+  const starred = store.isStarred(currentPattern);
+  btn.setAttribute('aria-pressed', String(starred));
+  btn.textContent = starred ? '\u2605 Starred' : '\u2606 Star';
+  btn.disabled = !currentPattern;
+}
+
+function updateStepperUI(hasPrefix, addedBeats = 0, hasError = false) {
+  const shorterBtn = document.getElementById('suffix-shorter');
+  const longerBtn = document.getElementById('suffix-longer');
+  const label = document.getElementById('suffix-label');
+
+  if (!hasPrefix) {
+    shorterBtn.disabled = true;
+    longerBtn.disabled = true;
+    label.textContent = 'Random';
+    label.title = 'Enter a prefix to adjust suffix length';
+    return;
+  }
+
+  shorterBtn.disabled = extraSuffixSteps <= 0;
+  longerBtn.disabled = hasError || extraSuffixSteps >= MAX_EXTRA_STEPS;
+  label.textContent = extraSuffixSteps === 0 ? 'Shortest' : `+${extraSuffixSteps} step${extraSuffixSteps === 1 ? '' : 's'}`;
+  label.title = hasError ? '' : `Added ${addedBeats} beat${addedBeats === 1 ? '' : 's'}`;
+}
+
+function renderCurrentOrbitGraph() {
+  const container = document.getElementById('orbits-graph');
+  if (!currentSiteswap) {
+    container.replaceChildren();
+    return;
+  }
+  const model = buildOrbitGraphModel(currentSiteswap, currentIsSync, getOrbitColors(), currentDecomposed);
+  renderOrbitGraph(container, model);
+}
+
+function renderPatternLists() {
+  const renderList = (containerId, patterns, removable) => {
+    const container = document.getElementById(containerId);
+    container.replaceChildren();
+    if (patterns.length === 0) {
+      const empty = document.createElement('p');
+      empty.className = 'muted-note';
+      empty.textContent = removable ? 'Click Star to save patterns here.' : 'No recent patterns yet.';
+      container.appendChild(empty);
+      return;
+    }
+
+    for (const pattern of patterns) {
+      const wrap = document.createElement('span');
+      wrap.className = 'pattern-chip-wrap';
+
+      const loadBtn = document.createElement('button');
+      loadBtn.type = 'button';
+      loadBtn.className = 'pattern-chip';
+      loadBtn.textContent = pattern;
+      loadBtn.addEventListener('click', () => {
+        extraSuffixSteps = 0;
+        suggestbox.setText(pattern);
+        updateSuggestion(pattern, { recordImmediately: true });
+        suggestbox.focus();
+      });
+      wrap.appendChild(loadBtn);
+
+      if (removable) {
+        const rmBtn = document.createElement('button');
+        rmBtn.type = 'button';
+        rmBtn.className = 'pattern-chip-remove';
+        rmBtn.setAttribute('aria-label', `Unstar ${pattern}`);
+        rmBtn.textContent = '\u00d7';
+        rmBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          store.removeStar(pattern);
+          updateStarButton();
+          renderPatternLists();
+        });
+        wrap.appendChild(rmBtn);
+      }
+
+      container.appendChild(wrap);
+    }
+  };
+
+  renderList('starred-list', store.getStarred(), true);
+  renderList('recent-list', store.getRecent(), false);
+}
+
+function recordRecentNow(pattern) {
+  if (recentTimer !== null) {
+    clearTimeout(recentTimer);
+    recentTimer = null;
+  }
+  if (!pattern) {
+    return;
+  }
+  store.recordRecent(pattern);
+  renderPatternLists();
+}
+
+function scheduleRecentRecord(pattern) {
+  if (recentTimer !== null) {
+    clearTimeout(recentTimer);
+  }
+  recentTimer = setTimeout(() => {
+    recentTimer = null;
+    if (pattern && pattern === currentPattern) {
+      store.recordRecent(pattern);
+      renderPatternLists();
+    }
+  }, 600);
+}
+
+function updateSuggestion(prefix, { recordImmediately = false, rollbackStepsTo = null } = {}) {
   let suffix;
   let siteswap;
   let sync;
+  let addedBeats = 0;
 
   const vanilla = document.getElementById('vanilla').checked;
   if (!prefix) {
+    extraSuffixSteps = 0;
     sync = Math.random() < 0.5;
     siteswap = randomSiteswap(vanilla, sync);
     suffix = printSiteswap(siteswap, sync);
   } else {
     sync = prefix[0] === '(';
-    const result = suggestBest(prefix, !vanilla, sync);
+    const result = suggestBest(prefix, !vanilla, sync, extraSuffixSteps);
     if (result.error !== undefined) {
+      if (rollbackStepsTo !== null) {
+        extraSuffixSteps = rollbackStepsTo;
+        showError(result.error);
+        updateStepperUI(true, 0, true);
+        return;
+      }
       suggestbox.setSuggestion('');
       showError(result.error);
+      updateStepperUI(true, 0, true);
       return;
     }
     suffix = result.suffix;
     siteswap = result.siteswap;
+    addedBeats = result.addedBeats;
   }
 
-  suggestbox.setSuggestion(prefix + suffix);
+  const fullPattern = prefix + suffix;
+  const decomposed = decomposeOrbits(siteswap, sync);
+  currentPattern = fullPattern;
+  currentSiteswap = siteswap;
+  currentDecomposed = decomposed;
+  currentIsSync = sync;
+
+  suggestbox.setSuggestion(fullPattern);
   hideError();
+  updateStepperUI(Boolean(prefix), addedBeats, false);
+  updateStarButton();
 
   const colorByOrbit = document.getElementById('by_orbit').checked;
-  setSiteswap(siteswap, colorByOrbit, sync);
+  setSiteswap(siteswap, colorByOrbit, sync, decomposed);
+  renderCurrentOrbitGraph();
+
+  if (recordImmediately) {
+    recordRecentNow(fullPattern);
+  } else if (prefix) {
+    scheduleRecentRecord(fullPattern);
+  }
 }
 
 function initApp() {
+  store = createPatternStore();
+
   suggestbox = createAutocomplete(document.getElementById('input'), {
-    onChange: updateSuggestion,
+    onChange: (txt) => {
+      extraSuffixSteps = 0;
+      updateSuggestion(txt);
+    },
   });
   suggestbox.focus();
 
   for (const radio of document.querySelectorAll('input[name="options"]')) {
     radio.addEventListener('change', () => {
+      extraSuffixSteps = 0;
       updateSuggestion(suggestbox.getText());
     });
   }
@@ -100,14 +277,42 @@ function initApp() {
       } else {
         recolorRandomly();
       }
+      renderCurrentOrbitGraph();
     });
   }
 
   document.getElementById('randomize').addEventListener('click', () => {
-    updateSuggestion(suggestbox.getText());
+    updateSuggestion(suggestbox.getText(), { recordImmediately: true });
   });
 
   document.getElementById('copy').addEventListener('click', copyToClipboard);
+
+  document.getElementById('star').addEventListener('click', () => {
+    if (!currentPattern) {
+      return;
+    }
+    store.toggleStar(currentPattern);
+    store.recordRecent(currentPattern);
+    updateStarButton();
+    renderPatternLists();
+  });
+
+  document.getElementById('suffix-shorter').addEventListener('click', () => {
+    if (extraSuffixSteps > 0) {
+      extraSuffixSteps -= 1;
+      updateSuggestion(suggestbox.getText());
+    }
+  });
+
+  document.getElementById('suffix-longer').addEventListener('click', () => {
+    const prefix = suggestbox.getText();
+    if (!prefix || extraSuffixSteps >= MAX_EXTRA_STEPS) {
+      return;
+    }
+    const prevSteps = extraSuffixSteps;
+    extraSuffixSteps += 1;
+    updateSuggestion(prefix, { rollbackStepsTo: prevSteps });
+  });
 
   const speedSlider = document.getElementById('animation_speed');
   const speedValue = document.getElementById('speed-value');
@@ -119,14 +324,28 @@ function initApp() {
   speedSlider.addEventListener('input', syncSpeed);
   syncSpeed();
 
+  const jugglerToggle = document.getElementById('show_juggler');
+  jugglerToggle.addEventListener('change', () => {
+    setShowJuggler(jugglerToggle.checked);
+  });
+  setShowJuggler(jugglerToggle.checked);
+
+  renderPatternLists();
+
   const urlParams = new URLSearchParams(window.location.search);
   const initialPrefix = urlParams.get('prefix') || '';
   if (initialPrefix) {
     suggestbox.setText(initialPrefix);
   }
-  updateSuggestion(initialPrefix);
+  updateSuggestion(initialPrefix, { recordImmediately: Boolean(initialPrefix) });
 
   startAnimation(document.getElementById('canvas'));
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    });
+  }
 }
 
 if (document.readyState === 'loading') {

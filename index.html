@@ -4,81 +4,121 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#222222">
   <title>Juggle Suggest 2</title>
+  <link rel="icon" type="image/svg+xml" href="icon.svg">
+  <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
   <main class="page">
     <div class="layout">
-      <section class="panel controls-panel" aria-label="Siteswap controls">
-        <h1>Juggle Suggest 2</h1>
+      <section class="column controls-column" aria-label="Siteswap controls">
+        <header class="title-block">
+          <h1>Juggle Suggest 2</h1>
+        </header>
 
         <div id="input"></div>
-        <p class="input-hint">Type an async or sync siteswap prefix (e.g. <code>531</code>, <code>745[25</code>, <code>(4,2x</code>). Press <kbd>Tab</kbd> or <kbd>Enter</kbd> to accept.</p>
 
         <div class="alert-error" id="error" role="alert" hidden>
           <span id="error-text"></span>
         </div>
 
         <div class="action-row">
-          <button type="button" class="btn" id="randomize">Randomize Suffix</button>
+          <button type="button" class="btn" id="randomize">Randomize</button>
           <button type="button" class="btn" id="copy">Copy</button>
+          <button type="button" class="btn btn-star" id="star" aria-pressed="false" title="Star this pattern">&#9734; Star</button>
         </div>
 
-        <fieldset class="toggle-group" id="van-multi-toggle">
-          <legend class="sr-only">Suggestion mode</legend>
-          <label class="toggle-option">
-            <input type="radio" name="options" id="vanilla" value="vanilla">
-            <span>Vanilla suggestions</span>
-          </label>
-          <label class="toggle-option">
-            <input type="radio" name="options" id="multiplex" value="multiplex" checked>
-            <span>Multiplex suggestions</span>
-          </label>
-        </fieldset>
+        <div class="control-section">
+          <div class="control-row">
+            <span class="control-label">Suggestions</span>
+            <fieldset class="toggle-group" id="van-multi-toggle">
+              <legend class="sr-only">Suggestion mode</legend>
+              <label class="toggle-option">
+                <input type="radio" name="options" id="vanilla" value="vanilla">
+                <span>Vanilla</span>
+              </label>
+              <label class="toggle-option">
+                <input type="radio" name="options" id="multiplex" value="multiplex" checked>
+                <span>Multiplex</span>
+              </label>
+            </fieldset>
+          </div>
 
-        <fieldset class="toggle-group" id="color-toggle">
-          <legend class="sr-only">Ball coloring</legend>
-          <label class="toggle-option">
-            <input type="radio" name="colors" id="by_orbit" value="by_orbit">
-            <span>Color by Orbit</span>
-          </label>
-          <label class="toggle-option">
-            <input type="radio" name="colors" id="random" value="random" checked>
-            <span>Random Colors</span>
-          </label>
-        </fieldset>
+          <div class="control-row">
+            <span class="control-label">Suffix length</span>
+            <div class="stepper" role="group" aria-label="Suffix length stepper">
+              <button type="button" class="btn btn-step" id="suffix-shorter" aria-label="Shorter suffix" disabled>&minus;</button>
+              <span class="stepper-value" id="suffix-label">Shortest</span>
+              <button type="button" class="btn btn-step" id="suffix-longer" aria-label="Longer suffix">+</button>
+            </div>
+          </div>
 
-        <div class="slider-control">
-          <label for="animation_speed">
-            Animation speed <span id="speed-value" class="speed-value">10</span>
+          <div class="control-row">
+            <span class="control-label">Colors</span>
+            <fieldset class="toggle-group" id="color-toggle">
+              <legend class="sr-only">Ball coloring</legend>
+              <label class="toggle-option">
+                <input type="radio" name="colors" id="by_orbit" value="by_orbit">
+                <span>By orbit</span>
+              </label>
+              <label class="toggle-option">
+                <input type="radio" name="colors" id="random" value="random" checked>
+                <span>Random</span>
+              </label>
+            </fieldset>
+          </div>
+        </div>
+
+        <div class="control-section">
+          <div class="slider-control">
+            <label for="animation_speed">
+              <span class="control-label">Speed</span>
+              <span id="speed-value" class="speed-value">10</span>
+            </label>
+            <input id="animation_speed" type="range" min="1" max="40" step="1" value="10">
+          </div>
+
+          <label class="checkbox-control">
+            <input type="checkbox" id="show_juggler" checked>
+            <span>Show juggler</span>
           </label>
-          <input id="animation_speed" type="range" min="1" max="40" step="1" value="10">
         </div>
       </section>
 
-      <section class="panel animator-panel" aria-label="Siteswap animator">
+      <section class="column animator-column" aria-label="Siteswap animator">
         <canvas id="canvas" width="350" height="600"></canvas>
       </section>
 
-      <section class="panel orbits-panel" aria-label="Orbits visualizer">
-        <h2>Orbits</h2>
-        <p class="placeholder-note">
-          Orbits visualizer coming soon. Check out
-          <a href="https://jbuckland.com/juggle-graph" target="_blank" rel="noopener noreferrer">jbuckland.com/juggle-graph</a>
-          in the meantime.
-        </p>
+      <section class="column orbits-column" aria-label="Orbits and saved patterns">
+        <div class="side-block">
+          <h2>Orbits</h2>
+          <div id="orbits-graph"></div>
+        </div>
+
+        <div class="side-block" id="starred-section">
+          <h2>Starred</h2>
+          <div id="starred-list" class="pattern-chips"></div>
+        </div>
+
+        <div class="side-block" id="recent-section">
+          <h2>Recent</h2>
+          <div id="recent-list" class="pattern-chips"></div>
+        </div>
       </section>
     </div>
   </main>
 
   <footer class="site-footer">
-    Designed and built by
-    <a href="https://joshmermelstein.com/" target="_blank" rel="noopener noreferrer">Josh Mermelstein</a>.
-    Code and documentation on
-    <a href="https://github.com/JoshMermel/juggle-suggest2" target="_blank" rel="noopener noreferrer">GitHub</a>.
-    Special thanks to James Buckland and Colin Tincknell for advice.
+    By <a href="https://joshmermelstein.com/" target="_blank" rel="noopener noreferrer">Josh Mermelstein</a>
+    &middot;
+    <a href="https://github.com/JoshMermel/juggle-suggest2" target="_blank" rel="noopener noreferrer">Source</a>
+    &middot;
+    Orbits inspired by <a href="https://jbuckland.com/juggling-graph/" target="_blank" rel="noopener noreferrer">juggling-graph</a>
+    &middot;
+    Thanks to James Buckland &amp; Colin Tincknell
   </footer>
 
   <script type="module" src="app.js"></script>
