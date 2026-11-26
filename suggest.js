@@ -1,112 +1,125 @@
-// Before launch:
-//   review and update comments.
-//
-// Eventually
-//   minify?
-//   improve error messages on bad input. (what was expected?).
-//   figure out what to do if all suffixes have a throw larger than z.
-//     can this be detected?
-//   stop computing ups and downs an extra time (tiny optimization)
-//   additional visualizers
-//     embedded jugglinglab or something custom
-//     jbuckland's juggle-graph
-//     transitions from/to ground state (what is 5b sync ground state?)
-//  add a random button based on cards model.
+import { mod, shuffled } from './utils.js';
 
-// Regexs for letters that are valid toss heights.
+const MAX_TOSS = 35;
+
+// Checks for characters that are valid toss heights.
 function isValidAsyncToss(c) {
-  return c.match(/[0-9a-z]$/);
+  return /^[0-9a-z]$/.test(c);
 }
+
 function isEvenToss(c) {
-  return c.match(/^[02468acegikmoqsuwy]$/);
+  return /^[02468acegikmoqsuwy]$/.test(c);
 }
 
-// Takes a char in the siteswap range [0-9a-z]
-// Returns an int representing a throw of that height
+// Takes a char in [0-9a-z] and returns its integer throw height.
 function toInt(c) {
-  if (c.match(/^[0-9]$/)) {
+  if (/^[0-9]$/.test(c)) {
     return parseInt(c, 10);
-  } else if (c.match(/^[a-z]$/i)) {
-    return c.charCodeAt(0) - "a".charCodeAt(0) + 10;
-  } else {
-    // TODO: something better here.
-    throw c;
   }
+  if (/^[a-z]$/.test(c)) {
+    return c.charCodeAt(0) - 97 + 10;
+  }
+  throw new RangeError("Invalid toss character: " + c);
 }
 
-// Takes an integer value in the siteswap range
-// returns a char representing a throw of that height
+// Takes an integer in [0, 35] and returns its async siteswap character.
 function asyncToToss(i) {
   if (i >= 0 && i <= 9) {
     return String.fromCharCode(i + 48);
-  } else if (i >= 10 && i <= 35) {
+  }
+  if (i >= 10 && i <= MAX_TOSS) {
     return String.fromCharCode(i + 97 - 10);
   }
-  // TODO: handle characters larger than this?
+  throw new RangeError("Throw height out of range: " + i);
 }
 
-// Takes an integer in the siteswap range.
-// returns a string representing a throw of that height.
-// if the throw is odd, it need to be made even and given an "x". Parity is used
-// to tell whether it should be incremented to decremented.
+// Takes an integer in the siteswap range and returns its sync string.
+// Odd raw throws are crossing throws whose even visual height is i + odd_modifier.
 function syncToToss(i, odd_modifier) {
   if (i % 2 === 1) {
-    return syncToToss(i + odd_modifier) + "x";
+    const adjusted = i + odd_modifier;
+    if (adjusted <= 0 || adjusted > MAX_TOSS) {
+      throw new RangeError("Sync throw height out of range: " + adjusted);
+    }
+    return syncToToss(adjusted, 0) + "x";
   }
 
   if (i >= 0 && i <= 9) {
     return String.fromCharCode(i + 48);
-  } else if (i >= 10 && i <= 35) {
-    return String.fromCharCode(i + 97 - 10);
-  } else {
-    throw i;
   }
+  if (i >= 10 && i <= MAX_TOSS) {
+    return String.fromCharCode(i + 97 - 10);
+  }
+  throw new RangeError("Throw height out of range: " + i);
 }
 
-// Takes a list of integers in the siteswap range.
-// returns a string representing a multiples of throws to those heights.
-// does not add square braces.
 function toAsyncMultiToss(tosses) {
   return tosses.map(x => asyncToToss(x)).join("");
 }
+
 function toSyncMultiToss(tosses, odd_modifier) {
   return tosses.map(x => syncToToss(x, odd_modifier)).join("");
 }
 
 function appendX(s) {
-  var toss = s.siteswap[s.siteswap.length-1];
+  const toss = s.siteswap[s.siteswap.length - 1];
   if (s.siteswap.length % 2 === 0) {
-    toss[toss.length-1] -= 1;
+    toss[toss.length - 1] -= 1;
   } else {
-    toss[toss.length-1] += 1;
+    toss[toss.length - 1] += 1;
   }
 }
 
 // Enum for async parse state.
-var AsyncStateEnum = {
-  A_NORMAL : 0,
-  A_EMPTY_BRACE : 1,
-  A_BRACE : 2,
-};
+const AsyncStateEnum = Object.freeze({
+  A_NORMAL: 0,
+  A_EMPTY_BRACE: 1,
+  A_BRACE: 2,
+});
 
-// Enum for sync parse state.
-// We start at 3 just in case someone tries to compare sync and async enums by
-// accident.
-var SyncStateEnum = {
-  S_NORMAL : 3,
-  S_FIRST : 4,
-  S_FIRST_X : 5,
-  S_FIRST_EMPTY_BRACE : 6,
-  S_FIRST_BRACE : 7,
-  S_FIRST_X_OR_BRACE : 8,
-  S_COMMA : 9,
-  S_SECOND : 10,
-  S_SECOND_X : 11,
-  S_SECOND_EMPTY_BRACE : 12,
-  S_SECOND_BRACE : 13,
-  S_SECOND_X_OR_BRACE : 14,
-  S_PAREN : 15,
-};
+// Enum for sync parse state (starts at 3 so async/sync values never overlap).
+const SyncStateEnum = Object.freeze({
+  S_NORMAL: 3,
+  S_FIRST: 4,
+  S_FIRST_X: 5,
+  S_FIRST_EMPTY_BRACE: 6,
+  S_FIRST_BRACE: 7,
+  S_FIRST_X_OR_BRACE: 8,
+  S_COMMA: 9,
+  S_SECOND: 10,
+  S_SECOND_X: 11,
+  S_SECOND_EMPTY_BRACE: 12,
+  S_SECOND_BRACE: 13,
+  S_SECOND_X_OR_BRACE: 14,
+  S_PAREN: 15,
+});
+
+const OPEN_MULTIPLEX_STATES = new Set([
+  AsyncStateEnum.A_EMPTY_BRACE,
+  AsyncStateEnum.A_BRACE,
+  SyncStateEnum.S_FIRST_EMPTY_BRACE,
+  SyncStateEnum.S_FIRST_BRACE,
+  SyncStateEnum.S_FIRST_X_OR_BRACE,
+  SyncStateEnum.S_SECOND_EMPTY_BRACE,
+  SyncStateEnum.S_SECOND_BRACE,
+  SyncStateEnum.S_SECOND_X_OR_BRACE,
+]);
+
+// Sync states from which appending 'x' is syntactically valid.
+const PRE_X_STATES = new Set([
+  SyncStateEnum.S_FIRST_X,
+  SyncStateEnum.S_FIRST_X_OR_BRACE,
+  SyncStateEnum.S_SECOND_X,
+  SyncStateEnum.S_SECOND_X_OR_BRACE,
+]);
+
+// Sync states immediately reached after parsing 'x'.
+const POST_X_STATES = new Set([
+  SyncStateEnum.S_COMMA,
+  SyncStateEnum.S_FIRST_BRACE,
+  SyncStateEnum.S_PAREN,
+  SyncStateEnum.S_SECOND_BRACE,
+]);
 
 function parseANormal(s, next_char) {
   if (next_char === "[") {
@@ -118,17 +131,19 @@ function parseANormal(s, next_char) {
     s.error = "Unexpected character " + next_char;
   }
 }
+
 function parseAEmptyBrace(s, next_char) {
   if (isValidAsyncToss(next_char)) {
-    s.siteswap[s.siteswap.length-1].push(toInt(next_char));
+    s.siteswap[s.siteswap.length - 1].push(toInt(next_char));
     s.parse_state = AsyncStateEnum.A_BRACE;
   } else {
     s.error = "Unexpected character " + next_char;
   }
 }
+
 function parseABrace(s, next_char) {
   if (isValidAsyncToss(next_char)) {
-    s.siteswap[s.siteswap.length-1].push(toInt(next_char));
+    s.siteswap[s.siteswap.length - 1].push(toInt(next_char));
   } else if (next_char === "]") {
     s.parse_state = AsyncStateEnum.A_NORMAL;
   } else {
@@ -136,15 +151,11 @@ function parseABrace(s, next_char) {
   }
 }
 
-// Maps from async parse state to a function that parses one character when in
-// that parse state.
-function asyncParseFuns() {
-  var parse_funs = {};
-  parse_funs[AsyncStateEnum.A_NORMAL] = parseANormal;
-  parse_funs[AsyncStateEnum.A_EMPTY_BRACE] = parseAEmptyBrace;
-  parse_funs[AsyncStateEnum.A_BRACE] = parseABrace;
-  return parse_funs;
-}
+const ASYNC_PARSE_FUNS = Object.freeze({
+  [AsyncStateEnum.A_NORMAL]: parseANormal,
+  [AsyncStateEnum.A_EMPTY_BRACE]: parseAEmptyBrace,
+  [AsyncStateEnum.A_BRACE]: parseABrace,
+});
 
 function parseSyncNormal(s, next_char) {
   if (next_char === "(") {
@@ -183,7 +194,7 @@ function parseSyncFirstX(s, next_char) {
 function parseSyncFirstEmptyBrace(s, next_char) {
   if (next_char === "0") {
     s.parse_state = SyncStateEnum.S_FIRST_BRACE;
-    s.siteswap[s.siteswap.length - 1].push(toInt(next_char));
+    s.siteswap[s.siteswap.length - 1].push(0);
   } else if (isEvenToss(next_char)) {
     s.parse_state = SyncStateEnum.S_FIRST_X_OR_BRACE;
     s.siteswap[s.siteswap.length - 1].push(toInt(next_char));
@@ -195,7 +206,7 @@ function parseSyncFirstEmptyBrace(s, next_char) {
 function parseSyncFirstBrace(s, next_char) {
   if (next_char === "0") {
     s.parse_state = SyncStateEnum.S_FIRST_BRACE;
-    s.siteswap[s.siteswap.length - 1].push(toInt(next_char));
+    s.siteswap[s.siteswap.length - 1].push(0);
   } else if (isEvenToss(next_char)) {
     s.parse_state = SyncStateEnum.S_FIRST_X_OR_BRACE;
     s.siteswap[s.siteswap.length - 1].push(toInt(next_char));
@@ -237,7 +248,7 @@ function parseSyncSecond(s, next_char) {
     s.siteswap.push([]);
   } else if (next_char === "0") {
     s.parse_state = SyncStateEnum.S_PAREN;
-    s.siteswap.push([toInt(next_char)]);
+    s.siteswap.push([0]);
   } else if (isEvenToss(next_char)) {
     s.parse_state = SyncStateEnum.S_SECOND_X;
     s.siteswap.push([toInt(next_char)]);
@@ -308,102 +319,78 @@ function parseSyncParen(s, next_char) {
   }
 }
 
-// Maps from sync parse state to a function that parses one character when in
-// that parse state.
-function syncParseFuns() {
-  var parse_funs = {};
-  parse_funs[SyncStateEnum.S_NORMAL] = parseSyncNormal;
-  parse_funs[SyncStateEnum.S_FIRST] = parseSyncFirst;
-  parse_funs[SyncStateEnum.S_FIRST_X] = parseSyncFirstX;
-  parse_funs[SyncStateEnum.S_FIRST_EMPTY_BRACE] = parseSyncFirstEmptyBrace;
-  parse_funs[SyncStateEnum.S_FIRST_BRACE] = parseSyncFirstBrace;
-  parse_funs[SyncStateEnum.S_FIRST_X_OR_BRACE] = parseSyncFirstXOrBrace;
-  parse_funs[SyncStateEnum.S_COMMA] = parseSyncComma;
-  parse_funs[SyncStateEnum.S_SECOND] = parseSyncSecond;
-  parse_funs[SyncStateEnum.S_SECOND_X] = parseSyncSecondX;
-  parse_funs[SyncStateEnum.S_SECOND_EMPTY_BRACE] = parseSyncSecondEmptyBrace;
-  parse_funs[SyncStateEnum.S_SECOND_BRACE] = parseSyncSecondBrace;
-  parse_funs[SyncStateEnum.S_SECOND_X_OR_BRACE] = parseSyncSecondXOrBrace;
-  parse_funs[SyncStateEnum.S_PAREN] = parseSyncParen;
-  return parse_funs;
-}
+const SYNC_PARSE_FUNS = Object.freeze({
+  [SyncStateEnum.S_NORMAL]: parseSyncNormal,
+  [SyncStateEnum.S_FIRST]: parseSyncFirst,
+  [SyncStateEnum.S_FIRST_X]: parseSyncFirstX,
+  [SyncStateEnum.S_FIRST_EMPTY_BRACE]: parseSyncFirstEmptyBrace,
+  [SyncStateEnum.S_FIRST_BRACE]: parseSyncFirstBrace,
+  [SyncStateEnum.S_FIRST_X_OR_BRACE]: parseSyncFirstXOrBrace,
+  [SyncStateEnum.S_COMMA]: parseSyncComma,
+  [SyncStateEnum.S_SECOND]: parseSyncSecond,
+  [SyncStateEnum.S_SECOND_X]: parseSyncSecondX,
+  [SyncStateEnum.S_SECOND_EMPTY_BRACE]: parseSyncSecondEmptyBrace,
+  [SyncStateEnum.S_SECOND_BRACE]: parseSyncSecondBrace,
+  [SyncStateEnum.S_SECOND_X_OR_BRACE]: parseSyncSecondXOrBrace,
+  [SyncStateEnum.S_PAREN]: parseSyncParen,
+});
 
 function parseFuns(is_sync) {
-  if (is_sync) {
-    return syncParseFuns();
-  }
-  return asyncParseFuns();
+  return is_sync ? SYNC_PARSE_FUNS : ASYNC_PARSE_FUNS;
 }
 
-// Takes a string representation of a siteswap
-// Parses it into a list list int and a parse state.
-function parseSiteswap(str, is_sync) {
-  var parse_funs = parseFuns(is_sync);
-  var prefix = {};
-  prefix.parse_state = initialState(is_sync);
-  prefix.siteswap = [];
+function initialState(is_sync) {
+  return is_sync ? SyncStateEnum.S_NORMAL : AsyncStateEnum.A_NORMAL;
+}
 
-  for (var i = 0; i < str.length; i++) {
+// Parses a string representation of a siteswap into { siteswap, parse_state, error? }.
+function parseSiteswap(str, is_sync) {
+  const parse_funs = parseFuns(is_sync);
+  const prefix = {
+    parse_state: initialState(is_sync),
+    siteswap: [],
+  };
+
+  for (let i = 0; i < str.length; i++) {
     parse_funs[prefix.parse_state](prefix, str[i]);
     if (prefix.error !== undefined) {
-      prefix.error += (" at position " + i + ".");
+      prefix.error += " at position " + i + ".";
       break;
     }
   }
   return prefix;
 }
 
-// Takes a siteswap prefix
-// Returns a list of how many throws happen on each beat.
-// undefined means any number of things can go up on that beat.
+// Returns how many throws occur on each beat of the prefix.
 function getUps(s) {
   return s.siteswap.map(x => x.length);
 }
 
-// Takes a siteswap prefix
-// Takes an int len
-// Returns a list of how many catches happen if the suffix was length |len|.
-// 0 means exactly 0 things must land that beat
-// undefined means nothing lands on that beat yet but tosses are allowed to.
+// Returns how many catches land on each beat if the suffix has length `len`.
 function getDowns(s, len) {
-  var prefix = s.siteswap;
-  var downs = [];
-  var down_pos = 0;
-  for (var i = 0; i < prefix.length; i++) {
-    for (var j = 0; j < prefix[i].length; j++) {
-      down_pos = (prefix[i][j] + i) % (prefix.length + len);
-      if (downs[down_pos] === undefined) {
-        downs[down_pos] = 1;
-      } else {
-        downs[down_pos] += 1;
-      }
+  const prefix = s.siteswap;
+  const total_len = prefix.length + len;
+  const downs = [];
+  for (let i = 0; i < prefix.length; i++) {
+    for (let j = 0; j < prefix[i].length; j++) {
+      const down_pos = (prefix[i][j] + i) % total_len;
+      downs[down_pos] = (downs[down_pos] || 0) + 1;
     }
   }
   return downs;
 }
 
 function isOpenMultiplexState(parse_state) {
-  return [AsyncStateEnum.A_EMPTY_BRACE, 
-    AsyncStateEnum.A_BRACE,
-    SyncStateEnum.S_FIRST_EMPTY_BRACE,
-    SyncStateEnum.S_FIRST_BRACE,
-    SyncStateEnum.S_FIRST_X_OR_BRACE,
-    SyncStateEnum.S_SECOND_EMPTY_BRACE,
-    SyncStateEnum.S_SECOND_BRACE,
-    SyncStateEnum.S_SECOND_X_OR_BRACE 
-  ].indexOf(parse_state) >= 0;
+  return OPEN_MULTIPLEX_STATES.has(parse_state);
 }
 
-// Returns true if this list of throw locations and catch locations are
-// compatible.
-// open_multiplex is an bool that is true if the input ends with an open
-// multiplex
+// Returns true if throw counts and catch counts are compatible on prefix beats.
 function noConflict(ups, downs, parse_state) {
-  var num_to_check = ups.length;
+  let num_to_check = ups.length;
   if (isOpenMultiplexState(parse_state)) {
     num_to_check -= 1;
   }
-  for (var i = 0; i < num_to_check; i++) {
+  for (let i = 0; i < num_to_check; i++) {
     if (downs[i] > ups[i]) {
       return false;
     }
@@ -411,24 +398,21 @@ function noConflict(ups, downs, parse_state) {
   return true;
 }
 
-// It is worth checking up to the point that no throws wrap around modulo
-// pattern length. After that, downs will always be the same.
+// It is worth checking up to the point where no throws wrap around modulo
+// pattern length (total_len = max + 1, so suffix_len = max + 1 - prefix_len).
+// Beyond that, downs on prefix beats never change.
 function maxLengthToCheck(s) {
-  var max = 0;
-  for (var i = 0; i < s.siteswap.length; i++) {
-    for (var j = 0; j < s.siteswap[i].length; j++) {
+  let max = 0;
+  for (let i = 0; i < s.siteswap.length; i++) {
+    for (let j = 0; j < s.siteswap[i].length; j++) {
       max = Math.max(max, s.siteswap[i][j] + i);
     }
   }
-  // this max is to handle an issue I don't fully understand when the prefix is
-  // something like "0" or "(0"
-  // the +2 used to be a +1 but that made it check too little for the prefix
-  // "32"
-  return Math.max(max - s.siteswap.length + 2, 2);
+  return Math.max(max - s.siteswap.length + 1, 1);
 }
 
 function noMultiplexAdded(downs, prefix_len) {
-  for (var i = prefix_len; i < downs.length; i++) {
+  for (let i = prefix_len; i < downs.length; i++) {
     if (downs[i] > 1) {
       return false;
     }
@@ -436,55 +420,33 @@ function noMultiplexAdded(downs, prefix_len) {
   return true;
 }
 
-// Returns the length of the shortest suffix.
-function asyncSuffixLength(s, allow_multiplex) {
-  var ups = getUps(s);
-  var max_length_to_check = maxLengthToCheck(s);
-  var downs;
-  for (var i = 0; i < max_length_to_check; i++) {
-    downs = getDowns(s, i);
-    if (noConflict(ups, downs, s.parse_state)) {
-      if (allow_multiplex || noMultiplexAdded(downs, s.siteswap.length)) {
-        return i;
-      }
-    }
-  }
-  return -1;
-}
+// Finds the shortest valid suffix length and returns { length, downs } or null.
+function findShortestSuffix(s, ups, allow_multiplex, is_sync) {
+  const start = is_sync
+    ? (s.siteswap.length % 2) + (s.parse_state === SyncStateEnum.S_FIRST ? 2 : 0)
+    : 0;
+  const step = is_sync ? 2 : 1;
+  const limit = maxLengthToCheck(s) + (is_sync ? 1 : 0);
 
-function syncSuffixLength(s, allow_multiplex) {
-  var first_suffix_len = s.siteswap.length % 2;
-  // HACK, fixes (0,0)( -> ) and ( -> )
-  // TODO: make this into a minSuffixLengthToCheck?
-  if (s.parse_state === SyncStateEnum.S_FIRST) {
-    first_suffix_len += 2;
-  }
-  var ups = getUps(s);
-  // Since lengths must be even, this +1 makes sure we actually check the max
-  // length we intend to check.
-  var max_length_to_check = maxLengthToCheck(s) + 1;
-  var downs;
-  for (var i = first_suffix_len; i < max_length_to_check; i+=2) {
-    downs = getDowns(s, i);
+  for (let i = start; i <= limit; i += step) {
+    const downs = getDowns(s, i);
     if (noConflict(ups, downs, s.parse_state)) {
       if (allow_multiplex || noMultiplexAdded(downs, s.siteswap.length)) {
-        return i;
+        return { length: i, downs };
       }
     }
   }
-  return -1;
+  return null;
 }
 
 function suffixLength(prefix, allow_multiplex, is_sync) {
-  if (is_sync) {
-    return syncSuffixLength(prefix, allow_multiplex);
-  }
-  return asyncSuffixLength(prefix, allow_multiplex);
+  const found = findShortestSuffix(prefix, getUps(prefix), allow_multiplex, is_sync);
+  return found ? found.length : -1;
 }
 
 function goalCounts(ups, downs, suffix_length, parse_state) {
-  var goal_counts = [];
-  for (var i = 0; i < suffix_length + ups.length; i++) {
+  const goal_counts = new Array(suffix_length + ups.length);
+  for (let i = 0; i < goal_counts.length; i++) {
     if (downs[i] === undefined && ups[i] === undefined) {
       goal_counts[i] = 1;
     } else if (downs[i] === undefined) {
@@ -495,45 +457,38 @@ function goalCounts(ups, downs, suffix_length, parse_state) {
       goal_counts[i] = Math.max(ups[i], downs[i]);
     }
   }
-  // Opinionated choice, honor user square braces even in vanilla input mode.
+  // Honor user square braces even in vanilla mode by ensuring >= 2 throws.
   if (isOpenMultiplexState(parse_state)) {
-    var open_index = ups.length - 1;
+    const open_index = ups.length - 1;
     goal_counts[open_index] = Math.max(2, goal_counts[open_index]);
   }
   return goal_counts;
 }
 
-// Returns a list of indices in lst that would need to be incremented to get
-// goal_counts. If an index would need to be incremented n times, then that
-// index will appear n times in the output.
+// Returns a multiset of beat indices representing how many throws/catches must
+// be added at each index to reach goal_counts.
 function listDiff(lst, goal_counts) {
-  var have = [];
-  for (var i = 0; i < goal_counts.length; i++) {
-    var elem = lst[i] || 0;
-    for (var j = 0; j < (goal_counts[i] - elem); j++) {
-      have.push(i);
+  const diff = [];
+  for (let i = 0; i < goal_counts.length; i++) {
+    const elem = lst[i] || 0;
+    for (let j = 0; j < goal_counts[i] - elem; j++) {
+      diff.push(i);
     }
   }
-  return have;
+  return diff;
 }
 
-// Mod but it turns negatives to positives efficiently.
-function mod(n, m) {
-  return ((n % m) + m) % m;
-}
-
-// Produces a map from throw location to list of catch locations.
+// Produces a map from throw beat index to sorted list of added throw heights.
 function suffixMap(have, need, goal_length, is_sync) {
-  var suffix_map = [];
-  var toss;
-  for (var i = 0; i < have.length; i++) {
-    toss = mod(need[i] - have[i], goal_length);
-    // Personal preference, I don't like lots of 0's in a suffix.
-    if (toss == 0 && goal_length < 36) {
+  const suffix_map = [];
+  for (let i = 0; i < have.length; i++) {
+    let toss = mod(need[i] - have[i], goal_length);
+    // Avoid filling suffixes with 0s when a period-length throw fits.
+    if (toss === 0 && goal_length <= MAX_TOSS) {
       toss = goal_length;
     }
-    // Avoids 0xs
-    if (toss === 1 && goal_length < 36 && have[i] % 2 === 0 && is_sync) {
+    // Avoid 0x throws on even beats in sync mode.
+    if (toss === 1 && goal_length < MAX_TOSS && have[i] % 2 === 0 && is_sync) {
       toss = goal_length + 1;
     }
     if (suffix_map[have[i]] === undefined) {
@@ -541,42 +496,55 @@ function suffixMap(have, need, goal_length, is_sync) {
     }
     suffix_map[have[i]].push(toss);
   }
-  suffix_map.forEach(function(tosses) { tosses.sort(); });
+  for (let i = 0; i < suffix_map.length; i++) {
+    if (suffix_map[i] !== undefined) {
+      suffix_map[i].sort((a, b) => a - b);
+    }
+  }
   return suffix_map;
 }
 
-function asyncPunctuation(parse_state) {
-  if (isOpenMultiplexState(parse_state)) {
-    return "]";
+function isRepresentableSuffixMap(suffix_map, is_sync) {
+  for (let i = 0; i < suffix_map.length; i++) {
+    if (suffix_map[i] === undefined) {
+      continue;
+    }
+    for (let j = 0; j < suffix_map[i].length; j++) {
+      const toss = suffix_map[i][j];
+      if (!is_sync) {
+        if (toss < 0 || toss > MAX_TOSS) {
+          return false;
+        }
+      } else if (toss % 2 === 1) {
+        const odd_modifier = (i % 2 === 0) ? -1 : 1;
+        const adjusted = toss + odd_modifier;
+        if (adjusted <= 0 || adjusted > MAX_TOSS) {
+          return false;
+        }
+      } else if (toss < 0 || toss > MAX_TOSS) {
+        return false;
+      }
+    }
   }
-  return "";
+  return true;
 }
 
-function syncPunctuation(parse_state) {
-  var ret = "";
-  if (isOpenMultiplexState(parse_state)) {
-    ret += "]";
+function punctuation(parse_state, is_sync) {
+  if (!is_sync) {
+    return isOpenMultiplexState(parse_state) ? "]" : "";
   }
+  let ret = isOpenMultiplexState(parse_state) ? "]" : "";
   if (parse_state !== SyncStateEnum.S_NORMAL) {
     ret += ")";
   }
   return ret;
 }
 
-// TODO: could infer sync from state?
-function punctuation(parse_state, is_sync) {
-  if (is_sync) {
-    return syncPunctuation(parse_state);
-  }
-  return asyncPunctuation(parse_state);
-}
-
 function buildSuffixANormal(s, toss) {
   if (toss.length > 1) {
     return "[" + buildSuffixABrace(s, toss);
-  } else {
-    return asyncToToss(toss[0]);
   }
+  return asyncToToss(toss[0]);
 }
 
 function buildSuffixABrace(s, toss) {
@@ -584,135 +552,99 @@ function buildSuffixABrace(s, toss) {
   return toAsyncMultiToss(toss) + "]";
 }
 
-function asyncBuildFuns() {
-  var build_funs = {};
-  build_funs[AsyncStateEnum.A_NORMAL] = buildSuffixANormal;
-  build_funs[AsyncStateEnum.A_EMPTY_BRACE] = buildSuffixABrace;
-  build_funs[AsyncStateEnum.A_BRACE] = buildSuffixABrace;
-  return build_funs;
-}
+const ASYNC_BUILD_FUNS = Object.freeze({
+  [AsyncStateEnum.A_NORMAL]: buildSuffixANormal,
+  [AsyncStateEnum.A_EMPTY_BRACE]: buildSuffixABrace,
+  [AsyncStateEnum.A_BRACE]: buildSuffixABrace,
+});
 
-function buildSuffixSNormal (s, toss) {
+function buildSuffixSNormal(s, toss) {
   return "(" + buildSuffixSFirst(s, toss);
 }
 
 function buildSuffixSFirst(s, toss) {
   if (toss.length > 1) {
     return "[" + buildSuffixSFirstBrace(s, toss);
-  } else {
-    s.parse_state = SyncStateEnum.S_SECOND;
-    return syncToToss(toss[0], -1) + ",";
   }
+  s.parse_state = SyncStateEnum.S_SECOND;
+  return syncToToss(toss[0], -1) + ",";
 }
 
-// Also handles S_COMMA
-function buildSuffixSFirstX(s, index , toss) {
-  return "," + buildSuffixSSecond(s, index , toss);
+// Also handles S_COMMA.
+function buildSuffixSFirstX(s, toss) {
+  return "," + buildSuffixSSecond(s, toss);
 }
 
-// Also handle S_FIRST_EMPTY_BRACE and S_FIRST_X_OR_BRACE
+// Also handles S_FIRST_EMPTY_BRACE and S_FIRST_X_OR_BRACE.
 function buildSuffixSFirstBrace(s, toss) {
   s.parse_state = SyncStateEnum.S_SECOND;
   return toSyncMultiToss(toss, -1) + "],";
 }
 
-// also handles S_FIRST_X_OR_BRACE
 function buildSuffixSSecond(s, toss) {
   if (toss.length > 1) {
     return "[" + buildSuffixSSecondBrace(s, toss);
-  } else {
-    s.parse_state = SyncStateEnum.S_NORMAL;
-    return syncToToss(toss[0], 1) + ")";
   }
+  s.parse_state = SyncStateEnum.S_NORMAL;
+  return syncToToss(toss[0], 1) + ")";
 }
 
-// Also handles S_PAREN
+// Also handles S_PAREN.
 function buildSuffixSSecondX(s, toss) {
   return ")(" + buildSuffixSFirst(s, toss);
 }
 
-// Also handle S_SECOND_EMPTY_BRACE and S_SECOND_X_OR_BRACE
+// Also handles S_SECOND_EMPTY_BRACE and S_SECOND_X_OR_BRACE.
 function buildSuffixSSecondBrace(s, toss) {
   s.parse_state = SyncStateEnum.S_NORMAL;
   return toSyncMultiToss(toss, 1) + "])";
 }
 
-function syncBuildFuns() {
-  var build_funs = {};
-  build_funs[SyncStateEnum.S_NORMAL] = buildSuffixSNormal;
-  build_funs[SyncStateEnum.S_FIRST] = buildSuffixSFirst;
-  build_funs[SyncStateEnum.S_FIRST_X] = buildSuffixSFirstX;
-  build_funs[SyncStateEnum.S_COMMA] = buildSuffixSFirstX;
-  build_funs[SyncStateEnum.S_FIRST_EMPTY_BRACE] = buildSuffixSFirstBrace;
-  build_funs[SyncStateEnum.S_FIRST_BRACE] = buildSuffixSFirstBrace;
-  build_funs[SyncStateEnum.S_FIRST_X_OR_BRACE] = buildSuffixSFirstBrace;
-  build_funs[SyncStateEnum.S_SECOND] = buildSuffixSSecond;
-  build_funs[SyncStateEnum.S_SECOND_X] = buildSuffixSSecondX;
-  build_funs[SyncStateEnum.S_PAREN] = buildSuffixSSecondX;
-  build_funs[SyncStateEnum.S_SECOND_EMPTY_BRACE] = buildSuffixSSecondBrace;
-  build_funs[SyncStateEnum.S_SECOND_BRACE] = buildSuffixSSecondBrace;
-  build_funs[SyncStateEnum.S_SECOND_X_OR_BRACE] = buildSuffixSSecondBrace;
-  return build_funs;
-}
-
-// TODO: could merge maps
-function buildFuns(is_sync) {
-  if (is_sync) {
-    return syncBuildFuns();
-  }
-  return asyncBuildFuns();
-}
-
-// Handles cases where the state of the user's input is an open multiplex that
-// we don't want to add to. By doing this as prework, the suffix builder can be
-// simplifed. For example:
-// 745[25 -> ]5[56]5[57]
-function asyncPreSuffix(s, suffix_map) {
-  var suffix = "";
-  if (suffix_map[s.siteswap.length - 1] === undefined &&
-    s.parse_state === AsyncStateEnum.A_BRACE) {
-    suffix += "]";
-    s.parse_state = AsyncStateEnum.A_NORMAL;
-  }
-  return suffix;
-}
-
-// Handles cases where the state of the user's input is an open multiplex that
-// we don't want to add to. By doing this as prework, the suffix builder can be
-// simplifed. For example:
-// (4,4)([44          -> ],4)
-// (4,4)([4x4x        -> ], [2x2x])
-// ([6x2x],4)(4,[2x8x -> ])([24],4)
-// ([64],2x)(2x,[44   -> ])(4,2x)(4x,[44])
-function syncPreSuffix(s, suffix_map) {
-  var suffix = "";
-  if (suffix_map[s.siteswap.length - 1] === undefined &&
-    (s.parse_state === SyncStateEnum.S_FIRST_BRACE ||
-    s.parse_state === SyncStateEnum.S_FIRST_X_OR_BRACE)) {
-    suffix += "],";
-    s.parse_state = SyncStateEnum.S_SECOND;
-  }
-  if (suffix_map[s.siteswap.length - 1] === undefined &&
-    (s.parse_state === SyncStateEnum.S_SECOND_BRACE ||
-    s.parse_state === SyncStateEnum.S_SECOND_X_OR_BRACE)) {
-    suffix += "])";
-    s.parse_state = SyncStateEnum.S_NORMAL;
-  }
-  return suffix;
-}
+const SYNC_BUILD_FUNS = Object.freeze({
+  [SyncStateEnum.S_NORMAL]: buildSuffixSNormal,
+  [SyncStateEnum.S_FIRST]: buildSuffixSFirst,
+  [SyncStateEnum.S_FIRST_X]: buildSuffixSFirstX,
+  [SyncStateEnum.S_COMMA]: buildSuffixSFirstX,
+  [SyncStateEnum.S_FIRST_EMPTY_BRACE]: buildSuffixSFirstBrace,
+  [SyncStateEnum.S_FIRST_BRACE]: buildSuffixSFirstBrace,
+  [SyncStateEnum.S_FIRST_X_OR_BRACE]: buildSuffixSFirstBrace,
+  [SyncStateEnum.S_SECOND]: buildSuffixSSecond,
+  [SyncStateEnum.S_SECOND_X]: buildSuffixSSecondX,
+  [SyncStateEnum.S_PAREN]: buildSuffixSSecondX,
+  [SyncStateEnum.S_SECOND_EMPTY_BRACE]: buildSuffixSSecondBrace,
+  [SyncStateEnum.S_SECOND_BRACE]: buildSuffixSSecondBrace,
+  [SyncStateEnum.S_SECOND_X_OR_BRACE]: buildSuffixSSecondBrace,
+});
 
 function preSuffix(s, suffix_map, is_sync) {
-  if (is_sync) {
-    return syncPreSuffix(s, suffix_map);
+  if (suffix_map[s.siteswap.length - 1] !== undefined) {
+    return "";
   }
-  return asyncPreSuffix(s, suffix_map);
+  if (!is_sync) {
+    if (s.parse_state === AsyncStateEnum.A_BRACE) {
+      s.parse_state = AsyncStateEnum.A_NORMAL;
+      return "]";
+    }
+    return "";
+  }
+  if (s.parse_state === SyncStateEnum.S_FIRST_BRACE ||
+      s.parse_state === SyncStateEnum.S_FIRST_X_OR_BRACE) {
+    s.parse_state = SyncStateEnum.S_SECOND;
+    return "],";
+  }
+  if (s.parse_state === SyncStateEnum.S_SECOND_BRACE ||
+      s.parse_state === SyncStateEnum.S_SECOND_X_OR_BRACE) {
+    s.parse_state = SyncStateEnum.S_NORMAL;
+    return "])";
+  }
+  return "";
 }
 
-// Builds a suffix using the state transition graph.
+// Builds a suffix string using the state transition graph.
 function buildSuffix(s, suffix_map, is_sync) {
-  var build_funs = buildFuns(is_sync);
-  var suffix = preSuffix(s, suffix_map, is_sync);
-  for (var i = 0; i < suffix_map.length; i++) {
+  const build_funs = is_sync ? SYNC_BUILD_FUNS : ASYNC_BUILD_FUNS;
+  let suffix = preSuffix(s, suffix_map, is_sync);
+  for (let i = 0; i < suffix_map.length; i++) {
     if (suffix_map[i] !== undefined) {
       suffix += build_funs[s.parse_state](s, suffix_map[i]);
     }
@@ -720,204 +652,129 @@ function buildSuffix(s, suffix_map, is_sync) {
   return suffix + punctuation(s.parse_state, is_sync);
 }
 
-function initialState(is_sync) {
-  if (is_sync) {
-    return SyncStateEnum.S_NORMAL;
+// Combines prefix siteswap throws with suffix_map throws without re-parsing.
+function combineSiteswap(prefix_siteswap, suffix_map) {
+  const combined = prefix_siteswap.map(beat => beat.slice());
+  for (let i = 0; i < suffix_map.length; i++) {
+    if (suffix_map[i] !== undefined) {
+      if (i < combined.length) {
+        combined[i].push(...suffix_map[i]);
+      } else {
+        combined[i] = suffix_map[i].slice();
+      }
+    }
   }
-  return AsyncStateEnum.A_NORMAL;
+  return combined;
 }
 
-// Fisher-Yates shuffles an array
-function shuffle(array) {
-  var m = array.length, t, i;
-  while (m) {
-    i = Math.floor(Math.random() * m--);
-    t = array[m];
-    array[m] = array[i];
-    array[i] = t;
+// Core suggestion engine operating on an already-parsed prefix object.
+function suggestFromParsed(prefix, input, allow_multiplex, is_sync) {
+  const ups = getUps(prefix);
+  const found = findShortestSuffix(prefix, ups, allow_multiplex, is_sync);
+  if (found === null) {
+    return { error: "No valid suffixes exist for " + input };
   }
-  return array;
+
+  const goal_counts = goalCounts(ups, found.downs, found.length, prefix.parse_state);
+  const have = listDiff(ups, goal_counts);
+  const need = listDiff(found.downs, goal_counts);
+
+  let suffix_map = suffixMap(have, shuffled(need), goal_counts.length, is_sync);
+  if (!isRepresentableSuffixMap(suffix_map, is_sync)) {
+    let ok = false;
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const candidate = suffixMap(have, attempt === 0 ? need : shuffled(need), goal_counts.length, is_sync);
+      if (isRepresentableSuffixMap(candidate, is_sync)) {
+        suffix_map = candidate;
+        ok = true;
+        break;
+      }
+    }
+    if (!ok) {
+      return { error: "Suffix requires a throw higher than 'z' (35) for " + input };
+    }
+  }
+
+  const siteswap = combineSiteswap(prefix.siteswap, suffix_map);
+  const builderState = { parse_state: prefix.parse_state, siteswap: prefix.siteswap };
+  const suffix = buildSuffix(builderState, suffix_map, is_sync);
+  return { suffix, siteswap };
 }
 
-// Inputs is a string prefix of a siteswap
-// Returns a suffix or that there is none.
+// Returns a suffix string for `input`, or `{ error }`.
 function suggest(input, allow_multiplex, is_sync) {
-  // Parse
-  var prefix = parseSiteswap(input, is_sync);
-  if (prefix.error != undefined) {
+  const prefix = parseSiteswap(input, is_sync);
+  if (prefix.error !== undefined) {
     return prefix;
   }
-
-  // Find suffix length
-  var suffix_length = suffixLength(prefix, allow_multiplex, is_sync);
-  if (suffix_length === -1) {
-    return {error: "No valid suffixes exist for " + input};
-  }
-  
-  // Figure out what you have and need
-  var ups = getUps(prefix);
-  var downs = getDowns(prefix, suffix_length);
-  var goal_counts = goalCounts(ups, downs, suffix_length, prefix.parse_state);
-  var have = listDiff(ups, goal_counts);
-  var need = listDiff(downs, goal_counts);
-
-  // Map between what you have and need
-  var suffix_map = suffixMap(have, shuffle(need), goal_counts.length, is_sync);
-
-  // Print the suffix in a way that matches the parse state
-  var suffix = buildSuffix(prefix, suffix_map, is_sync);
-  return suffix;
+  const result = suggestFromParsed(prefix, input, allow_multiplex, is_sync);
+  return result.error !== undefined ? result : result.suffix;
 }
 
-// Like suggest but adds an x to the input before trying and doesn't return
-// helpful errors on failure.
+// Like suggest, but appends 'x' first in sync mode; returns undefined on failure.
 function suggestWithX(input, allow_multiplex, is_sync) {
-  var parsed = parseSiteswap(input + 'x', is_sync);
-  if (parsed.error !== undefined || 
-    [ SyncStateEnum.S_COMMA,
-      SyncStateEnum.S_FIRST_X_OR_BRACE,
-      SyncStateEnum.S_PAREN,
-      SyncStateEnum.S_SECOND_X_OR_BRACE 
-    ].indexOf(parsed.parse_state) < 0) {
+  if (!is_sync) {
     return undefined;
-  } else {
   }
-  suffix = suggest(input + 'x', allow_multiplex, is_sync);
-  if (suffix.error !== undefined) {
+  const parsed = parseSiteswap(input + 'x', true);
+  if (parsed.error !== undefined || !POST_X_STATES.has(parsed.parse_state)) {
     return undefined;
-  } else {
-    return suffix;
   }
+  const result = suggestFromParsed(parsed, input + 'x', allow_multiplex, true);
+  return result.error !== undefined ? undefined : result.suffix;
 }
 
-const copyToClipboard = str => {
-  const el = document.createElement('textarea');
-	if (suggestbox.options.length > 0) {
-		el.value = suggestbox.options[0];
-	} else {
-		el.value = suggestbox.getText();
-	}
-  el.setAttribute('readonly', '');
-  el.style.position = 'absolute';
-  el.style.left = '-9999px';
-  document.body.appendChild(el);
-  const selected =
-    document.getSelection().rangeCount > 0
-      ? document.getSelection().getRangeAt(0)
-      : false;
-  el.select();
-  document.execCommand('copy');
-  document.body.removeChild(el);
-  if (selected) {
-    document.getSelection().removeAllRanges();
-    document.getSelection().addRange(selected);
+// Single-parse entry point for the UI: tries `input` and (when syntactically
+// valid in sync mode) `input + 'x'`, returning the shorter `{ suffix, siteswap }`
+// or `{ error }`.
+function suggestBest(input, allow_multiplex, is_sync) {
+  const prefix = parseSiteswap(input, is_sync);
+  if (prefix.error !== undefined) {
+    return { error: prefix.error };
   }
-  var button = document.getElementById("copy");
-  button.innerHTML = "Copied Successfully";
-};
+
+  const primary = suggestFromParsed(prefix, input, allow_multiplex, is_sync);
+
+  if (is_sync && PRE_X_STATES.has(prefix.parse_state)) {
+    const xPrefix = {
+      parse_state: prefix.parse_state,
+      siteswap: prefix.siteswap.map(beat => beat.slice()),
+    };
+    SYNC_PARSE_FUNS[xPrefix.parse_state](xPrefix, 'x');
+    if (xPrefix.error === undefined && POST_X_STATES.has(xPrefix.parse_state)) {
+      const withX = suggestFromParsed(xPrefix, input + 'x', allow_multiplex, true);
+      if (withX.error === undefined &&
+          (primary.error !== undefined || primary.suffix.length > withX.suffix.length + 1)) {
+        return { suffix: 'x' + withX.suffix, siteswap: withX.siteswap };
+      }
+    }
+  }
+
+  return primary;
+}
 
 function printSiteswap(list, is_sync) {
-  var s = {parse_state: initialState(is_sync), siteswap: []};
+  const s = { parse_state: initialState(is_sync), siteswap: [] };
   return buildSuffix(s, list, is_sync);
 }
 
-// TODO: move this to another module that relies on this file
-// Function for interacting with html.
-function updateSuggestion(prefix) {
-  var suffix;
-  var sync;
-
-  var vanilla = document.getElementById("vanilla").checked;
-  if (!prefix) {
-    if (Math.random() < 0.5) {
-      sync = true;
-    }
-    suffix = printSiteswap(randomSiteswap(vanilla, sync), sync);
-  } else {
-    sync = (prefix[0] === "(");
-    suffix = suggest(prefix, !vanilla, sync);
-    // possibly replace with +x variant if it's shorter.
-    var suffix_with_x = suggestWithX(prefix, !vanilla, sync);
-    if (suffix_with_x !== undefined && 
-       (suffix.error !== undefined || suffix.length > suffix_with_x.length + 1)) {
-      suffix = 'x' + suffix_with_x;
-    }
-  }
-
-  if (suffix.error != undefined) {
-    suggestbox.options = [];
-    suggestbox.repaint();
-    $('#error span').text(suffix.error);
-    $('#error').slideDown();
-    return;
-  }
-
-  suggestbox.options = [prefix + suffix];
-  suggestbox.repaint();
-  $('#error').slideUp();
-
-  var color_by_orbit = document.getElementById("by_orbit").checked;
-  setSiteswap(parseSiteswap(prefix + suffix, sync).siteswap, color_by_orbit, sync);
-
-  return;
-}
-
-// TODO: move this to another module that relies on suggest.js
-function initSuggestbox() {
-  // suggestbox init
-  suggestbox = completely(document.getElementById('input'), {
-    fontSize : '24px',
-    fontFamily : 'Arial',
-    color:'#933',
-  });
-  suggestbox.repaint(); 
-  function Update(txt) {
-    updateSuggestion(txt);
-  }
-  suggestbox.onChange = Update;
-  suggestbox.input.focus();
-
-  // multiplex/vanilla selector
-  // Also style selector
-  $(".btn-group > .btn").click(function(){
-    $(this).addClass("active").siblings().removeClass("active");
-  });
-  $('input[name=options]').change(function(){
-    var txt = suggestbox.getText();
-    Update(txt);
-  });
-  $('input[name=colors]').click(function(){
-    if (document.getElementById("by_orbit").checked) {
-      recolorByOrbit();
-    } else {
-      recolorRandomly();
-    }
-  });
-  document.getElementById("randomize").onclick = (function(){
-    var txt = suggestbox.getText();
-    Update(txt);
-  });
-  document.getElementById("copy").onclick = (copyToClipboard);
-  document.getElementById("copy").onmouseout = (function() {
-    var button = document.getElementById("copy");
-    button.innerHTML = "Copy";
-  });
-  var urlParams = new URLSearchParams(window.location.search);
-  var prefix = urlParams.getAll('prefix')
-  if (prefix.length > 0) {
-    suggestbox.setText(prefix[0]);
-    updateSuggestion(prefix[0]);
-  } else {
-    updateSuggestion("");
-  }
-}
-
-// Export for tests
-module.exports = {
-  suggest : suggest,
-  parseSiteswap : parseSiteswap,
-  getUps : getUps,
-  getDowns : getDowns,
-  initialState : initialState,
-  parseFuns : parseFuns,
+export {
+  AsyncStateEnum,
+  SyncStateEnum,
+  isValidAsyncToss,
+  isEvenToss,
+  toInt,
+  asyncToToss,
+  syncToToss,
+  initialState,
+  parseFuns,
+  parseSiteswap,
+  getUps,
+  getDowns,
+  suffixLength,
+  suffixMap,
+  suggest,
+  suggestWithX,
+  suggestBest,
+  printSiteswap,
 };

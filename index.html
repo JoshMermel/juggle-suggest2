@@ -1,100 +1,87 @@
 <!doctype html>
-<html>
+<html lang="en">
 
 <head>
-  <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
-  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/7.1.0/bootstrap-slider.min.js"></script>
-  <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" />
-  <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/7.1.0/css/bootstrap-slider.min.css" />
-  <link rel="stylesheet" type="text/css" href="style.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Juggle Suggest 2</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
-  <div class="container">
-    <div class="row">
-      <div class="col-md-4">
+  <main class="page">
+    <div class="layout">
+      <section class="panel controls-panel" aria-label="Siteswap controls">
         <h1>Juggle Suggest 2</h1>
-        <hr/>
+
         <div id="input"></div>
-        <hr/>
-        <div class="alert alert-danger" id="error">
-          <span class='white-text flow-text'> '' </span>
-        </div>
-        <div>
-          <button type="button" class="btn btn-secondary" id="randomize">Randomize Suffix</button>
-          <button type="button" class="btn btn-secondary" id="copy">Copy</button>
-        </div>
-        <hr/>
-        <div class="btn-group" data-toggle="buttons" id="van-multi-toggle">
-          <label class="btn btn-primary">
-            <input type="radio" name="options" id="vanilla" autocomplete="off"> Vanilla suggestions </label>
-          <label class="btn btn-primary active">
-            <input type="radio" name="options" id="multiplex" autocomplete="off" checked="checked"> Multiplex suggestions </label>
-        </div>
-        <hr/>
-        <div class="btn-group" data-toggle="buttons" id="color-toggle">
-          <label class="btn btn-primary">
-            <input type="radio" name="colors" id="by_orbit" autocomplete="off"> Color by Orbit </label>
-          <label class="btn btn-primary active">
-            <input type="radio" name="colors" id="random" autocomplete="off" checked="checked"> Random Colors </label>
+        <p class="input-hint">Type an async or sync siteswap prefix (e.g. <code>531</code>, <code>745[25</code>, <code>(4,2x</code>). Press <kbd>Tab</kbd> or <kbd>Enter</kbd> to accept.</p>
+
+        <div class="alert-error" id="error" role="alert" hidden>
+          <span id="error-text"></span>
         </div>
 
-        <hr>
-
-        <div>
-          <span> Animation speed </span>
-          <input id="animation_speed" type="text" data-slider-min="1" data-slider-max="40" data-slider-step="1" data-slider-value="10" />
+        <div class="action-row">
+          <button type="button" class="btn" id="randomize">Randomize Suffix</button>
+          <button type="button" class="btn" id="copy">Copy</button>
         </div>
-      </div>
 
-      <div class="col-md-4 text-center">
-        <canvas id="canvas" width="350px" height="600px"></canvas>
-      </div>
-      <div class="col-md-4">
-        orbits goes here later. Check out jbuckland.com/juggling-graph in the meantime.
-      </div>
+        <fieldset class="toggle-group" id="van-multi-toggle">
+          <legend class="sr-only">Suggestion mode</legend>
+          <label class="toggle-option">
+            <input type="radio" name="options" id="vanilla" value="vanilla">
+            <span>Vanilla suggestions</span>
+          </label>
+          <label class="toggle-option">
+            <input type="radio" name="options" id="multiplex" value="multiplex" checked>
+            <span>Multiplex suggestions</span>
+          </label>
+        </fieldset>
+
+        <fieldset class="toggle-group" id="color-toggle">
+          <legend class="sr-only">Ball coloring</legend>
+          <label class="toggle-option">
+            <input type="radio" name="colors" id="by_orbit" value="by_orbit">
+            <span>Color by Orbit</span>
+          </label>
+          <label class="toggle-option">
+            <input type="radio" name="colors" id="random" value="random" checked>
+            <span>Random Colors</span>
+          </label>
+        </fieldset>
+
+        <div class="slider-control">
+          <label for="animation_speed">
+            Animation speed <span id="speed-value" class="speed-value">10</span>
+          </label>
+          <input id="animation_speed" type="range" min="1" max="40" step="1" value="10">
+        </div>
+      </section>
+
+      <section class="panel animator-panel" aria-label="Siteswap animator">
+        <canvas id="canvas" width="350" height="600"></canvas>
+      </section>
+
+      <section class="panel orbits-panel" aria-label="Orbits visualizer">
+        <h2>Orbits</h2>
+        <p class="placeholder-note">
+          Orbits visualizer coming soon. Check out
+          <a href="https://jbuckland.com/juggle-graph" target="_blank" rel="noopener noreferrer">jbuckland.com/juggle-graph</a>
+          in the meantime.
+        </p>
+      </section>
     </div>
-  </div>
+  </main>
 
-  <!--
-  <footer  style="background-color: #2c292f">
-   <div class="container">
-     <div class="row ">
-       <div class="col-md-12 text-center">
-         <h5 style="color: white">
-          Designed and built by 	
-          <a class="blue-text text-darken-3" 	
-             href="http://joshmermelstein.com/">	
-            Josh Mermelstein	
-          </a>. Code and documentation on 	
-          <a class="blue-text text-darken-3" 	
-             href="https://github.com/JoshMermel/juggle-suggest2/tree/gh-pages">
-            GitHub</a>.	
-          Special thanks to James Buckland and Colin Tincknell for advice.
-        </h5>
-       </div>
-     </div>  
-   </div>
+  <footer class="site-footer">
+    Designed and built by
+    <a href="https://joshmermelstein.com/" target="_blank" rel="noopener noreferrer">Josh Mermelstein</a>.
+    Code and documentation on
+    <a href="https://github.com/JoshMermel/juggle-suggest2" target="_blank" rel="noopener noreferrer">GitHub</a>.
+    Special thanks to James Buckland and Colin Tincknell for advice.
   </footer>
-  -->
-</body>
 
-<script src="completely.js"></script>
-<script src="suggest.js"></script>
-<script src="anim.js"></script>
-<script src="random_siteswap.js"></script>
-<script type="text/javascript">
-    window.onload = function() {
-        initSuggestbox();
-        $("#animation_speed").slider({
-            value: 10
-        });
-        $("#animation_speed").on("change", function(slideEvt) {
-            pace = slideEvt.value.newValue / 160;
-        });
-        StartAnimation();
-        // TODO: init orbits visualizer
-    }
-</script>
+  <script type="module" src="app.js"></script>
+</body>
 
 </html>
