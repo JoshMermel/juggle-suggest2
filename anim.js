@@ -102,19 +102,13 @@ function drawArm(ctx, arm, scale) {
   ctx.lineJoin = 'round';
   ctx.strokeStyle = JUGGLER_STROKE;
 
-  // Upper arm + forearm in one uniform color
+  // Continuous shoulder -> elbow -> hand path with smooth round join
   ctx.lineWidth = 3.5 * scale;
   ctx.beginPath();
   ctx.moveTo(arm.shoulder.x, arm.shoulder.y);
   ctx.lineTo(arm.elbow.x, arm.elbow.y);
   ctx.lineTo(arm.hand.x, arm.hand.y);
   ctx.stroke();
-
-  // Subtle elbow joint
-  ctx.fillStyle = JUGGLER_STROKE;
-  ctx.beginPath();
-  ctx.arc(arm.elbow.x, arm.elbow.y, 2.5 * scale, 0, 2 * Math.PI);
-  ctx.fill();
 
   // Hand palm indicator
   ctx.fillStyle = JUGGLER_FILL;

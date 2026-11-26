@@ -19,7 +19,6 @@ const MAX_EXTRA_STEPS = 10;
 let suggestbox;
 let store;
 let copyResetTimer = null;
-let recentTimer = null;
 
 let currentPattern = '';
 let currentSiteswap = null;
@@ -29,9 +28,6 @@ let extraSuffixSteps = 0;
 
 async function copyToClipboard() {
   const text = suggestbox.getSuggestion();
-  if (text) {
-    recordRecentNow(text);
-  }
   try {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       await navigator.clipboard.writeText(text);
@@ -121,83 +117,52 @@ function renderCurrentOrbitGraph() {
   renderOrbitGraph(container, model);
 }
 
-function renderPatternLists() {
-  const renderList = (containerId, patterns, removable) => {
-    const container = document.getElementById(containerId);
-    container.replaceChildren();
-    if (patterns.length === 0) {
-      const empty = document.createElement('p');
-      empty.className = 'muted-note';
-      empty.textContent = removable ? 'Click Star to save patterns here.' : 'No recent patterns yet.';
-      container.appendChild(empty);
-      return;
-    }
-
-    for (const pattern of patterns) {
-      const wrap = document.createElement('span');
-      wrap.className = 'pattern-chip-wrap';
-
-      const loadBtn = document.createElement('button');
-      loadBtn.type = 'button';
-      loadBtn.className = 'pattern-chip';
-      loadBtn.textContent = pattern;
-      loadBtn.addEventListener('click', () => {
-        extraSuffixSteps = 0;
-        suggestbox.setText(pattern);
-        updateSuggestion(pattern, { recordImmediately: true });
-        suggestbox.focus();
-      });
-      wrap.appendChild(loadBtn);
-
-      if (removable) {
-        const rmBtn = document.createElement('button');
-        rmBtn.type = 'button';
-        rmBtn.className = 'pattern-chip-remove';
-        rmBtn.setAttribute('aria-label', `Unstar ${pattern}`);
-        rmBtn.textContent = '\u00d7';
-        rmBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          store.removeStar(pattern);
-          updateStarButton();
-          renderPatternLists();
-        });
-        wrap.appendChild(rmBtn);
-      }
-
-      container.appendChild(wrap);
-    }
-  };
-
-  renderList('starred-list', store.getStarred(), true);
-  renderList('recent-list', store.getRecent(), false);
-}
-
-function recordRecentNow(pattern) {
-  if (recentTimer !== null) {
-    clearTimeout(recentTimer);
-    recentTimer = null;
-  }
-  if (!pattern) {
+function renderStarredList() {
+  const container = document.getElementById('starred-list');
+  container.replaceChildren();
+  const patterns = store.getStarred();
+  if (patterns.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'muted-note';
+    empty.textContent = 'Click Star to save patterns here.';
+    container.appendChild(empty);
     return;
   }
-  store.recordRecent(pattern);
-  renderPatternLists();
-}
 
-function scheduleRecentRecord(pattern) {
-  if (recentTimer !== null) {
-    clearTimeout(recentTimer);
+  for (const pattern of patterns) {
+    const wrap = document.createElement('span');
+    wrap.className = 'pattern-chip-wrap';
+
+    const loadBtn = document.createElement('button');
+    loadBtn.type = 'button';
+    loadBtn.className = 'pattern-chip';
+    loadBtn.textContent = pattern;
+    loadBtn.addEventListener('click', () => {
+      extraSuffixSteps = 0;
+      suggestbox.setText(pattern);
+      updateSuggestion(pattern);
+      suggestbox.focus();
+    });
+    wrap.appendChild(loadBtn);
+
+    const rmBtn = document.createElement('button');
+    rmBtn.type = 'button';
+    rmBtn.className = 'pattern-chip-remove';
+    rmBtn.setAttribute('aria-label', `Unstar ${pattern}`);
+    rmBtn.textContent = '\u00d7';
+    rmBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      store.removeStar(pattern);
+      updateStarButton();
+      renderStarredList();
+    });
+    wrap.appendChild(rmBtn);
+
+    container.appendChild(wrap);
   }
-  recentTimer = setTimeout(() => {
-    recentTimer = null;
-    if (pattern && pattern === currentPattern) {
-      store.recordRecent(pattern);
-      renderPatternLists();
-    }
-  }, 600);
 }
 
-function updateSuggestion(prefix, { recordImmediately = false, rollbackStepsTo = null } = {}) {
+function updateSuggestion(prefix, { rollbackStepsTo = null } = {}) {
   let suffix;
   let siteswap;
   let sync;
@@ -244,12 +209,6 @@ function updateSuggestion(prefix, { recordImmediately = false, rollbackStepsTo =
   const colorByOrbit = document.getElementById('by_orbit').checked;
   setSiteswap(siteswap, colorByOrbit, sync, decomposed);
   renderCurrentOrbitGraph();
-
-  if (recordImmediately) {
-    recordRecentNow(fullPattern);
-  } else if (prefix) {
-    scheduleRecentRecord(fullPattern);
-  }
 }
 
 function initApp() {
@@ -282,7 +241,7 @@ function initApp() {
   }
 
   document.getElementById('randomize').addEventListener('click', () => {
-    updateSuggestion(suggestbox.getText(), { recordImmediately: true });
+    updateSuggestion(suggestbox.getText());
   });
 
   document.getElementById('copy').addEventListener('click', copyToClipboard);
@@ -292,9 +251,8 @@ function initApp() {
       return;
     }
     store.toggleStar(currentPattern);
-    store.recordRecent(currentPattern);
     updateStarButton();
-    renderPatternLists();
+    renderStarredList();
   });
 
   document.getElementById('suffix-shorter').addEventListener('click', () => {
@@ -330,14 +288,14 @@ function initApp() {
   });
   setShowJuggler(jugglerToggle.checked);
 
-  renderPatternLists();
+  renderStarredList();
 
   const urlParams = new URLSearchParams(window.location.search);
   const initialPrefix = urlParams.get('prefix') || '';
   if (initialPrefix) {
     suggestbox.setText(initialPrefix);
   }
-  updateSuggestion(initialPrefix, { recordImmediately: Boolean(initialPrefix) });
+  updateSuggestion(initialPrefix);
 
   startAnimation(document.getElementById('canvas'));
 

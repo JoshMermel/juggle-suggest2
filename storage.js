@@ -1,8 +1,6 @@
-// LocalStorage-backed store for starred and recent siteswap patterns.
+// LocalStorage-backed store for starred siteswap patterns.
 
 const STARRED_KEY = 'juggle_suggest_starred_v1';
-const RECENT_KEY = 'juggle_suggest_recent_v1';
-const MAX_RECENT = 8;
 
 function readList(storage, key) {
   if (!storage) {
@@ -32,8 +30,7 @@ function writeList(storage, key, list) {
 }
 
 export function createPatternStore(storage = typeof localStorage !== 'undefined' ? localStorage : null) {
-  let starred = readList(storage, STARRED_KEY);
-  let recent = readList(storage, RECENT_KEY);
+  const starred = readList(storage, STARRED_KEY);
 
   return {
     getStarred() {
@@ -68,19 +65,6 @@ export function createPatternStore(storage = typeof localStorage !== 'undefined'
         writeList(storage, STARRED_KEY, starred);
       }
       return starred.slice();
-    },
-
-    getRecent() {
-      return recent.slice();
-    },
-
-    recordRecent(pattern) {
-      if (!pattern) {
-        return recent.slice();
-      }
-      recent = [pattern, ...recent.filter(p => p !== pattern)].slice(0, MAX_RECENT);
-      writeList(storage, RECENT_KEY, recent);
-      return recent.slice();
     },
   };
 }

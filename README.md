@@ -22,7 +22,7 @@ the end of the input to accept the suggestion.
 - **Randomize**: Re-shuffles the suffix (or generates a brand-new random
   siteswap via the juggling-cards model when the input is empty).
 - **Copy & Star**: Copy the completed pattern to your clipboard or star it to
-  save in `localStorage` alongside your recently explored patterns.
+  save in `localStorage`.
 
 ### Animator
 
